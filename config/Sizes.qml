@@ -13,7 +13,7 @@ QtObject {
   property int radius: 20           // corner rounding when closed
 
   // ── Hover ─────────────────────────────────────
-  property int hoverLift: 7         // how far it grows when the mouse is on it
+  property int hoverLift: 14        // how far it grows when the mouse is on it (saneAspect: 7)
 
   // ── Open card ─────────────────────────────────
   property int expandedHeight: 125  // how tall the card gets
