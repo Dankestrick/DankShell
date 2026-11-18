@@ -1,0 +1,17 @@
+# Every type in DankShell is listed here, so any file can use any other
+# by importing the root folder ("../.." from modules/island, ".." from config).
+
+# config/ — the knobs you tweak
+singleton Sizes 1.0 config/Sizes.qml
+singleton Motion 1.0 config/Motion.qml
+singleton Theme 1.0 config/Theme.qml
+
+# services/ — where data comes from
+singleton Time 1.0 services/Time.qml
+
+# components/ — small reusable pieces
+Pill 1.0 components/Pill.qml
+
+# modules/ — the big parts
+Island 1.0 modules/island/Island.qml
+Closed 1.0 modules/island/Closed.qml

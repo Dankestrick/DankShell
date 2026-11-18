@@ -1,0 +1,29 @@
+pragma Singleton
+import QtQuick
+import qs.Commons
+
+// Theme — colors and fonts. Colors follow your Omarchy theme live.
+// Three steps (saneAspect's contrast rule):
+//   1. surfaces: the pill and cards, quiet and close to each other
+//   2. text: bright, with a dimmer version for minor things
+//   3. accent: the ONE bright color, only for "you are here"
+QtObject {
+  // ── 1. Surfaces ───────────────────────────────
+  property color surface: "#000000"                       // the island itself (his is pure black)
+  property color surfaceRaised: Qt.lighter(Color.background, 1.35) // cards inside the island
+
+  // ── 2. Text ───────────────────────────────────
+  property color text: Color.foreground
+  property color textDim: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.6)
+
+  // ── 3. Accent ─────────────────────────────────
+  property color accent: Color.accent
+
+  // ── Fonts ─────────────────────────────────────
+  // saneAspect uses "SF Compact Display" (AUR: apple-fonts). Until that's
+  // installed, this follows your Omarchy font.
+  property string fontDisplay: Style.font.family  // the clock and headings
+  property string fontText: Style.font.family     // everything else
+  property int clockSize: 14
+  property int clockWeight: Font.DemiBold
+}

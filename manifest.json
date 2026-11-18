@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.dankestrick.dankshell",
+  "name": "DankShell",
+  "version": "0.1.0",
+  "author": "Dankest_Rick",
+  "license": "MIT",
+  "description": "A dynamic island shell for Omarchy: one pill at the top that grows on hover and opens a dashboard on click.",
+  "kinds": ["bar"],
+  "entryPoints": {
+    "bar": "Bar.qml"
+  }
+}
