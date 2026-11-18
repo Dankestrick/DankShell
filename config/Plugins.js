@@ -18,7 +18,7 @@ var LIST = [
   { id: "io.github.dankestrick.omagravastar", key: "gravastar", name: "Gravastar", icon: "mouse" },
   { id: "io.github.dankestrick.omaiphone",   key: "iphone",    name: "iPhone",    icon: "smartphone" },
   { id: "io.github.dankestrick.omajournal",  key: "journal",   name: "Journal",   icon: "edit_note" },
-  { id: "io.github.dankestrick.omagrokbots", key: "grokbots",  name: "Grok Bots", icon: "smart_toy", model: "Inbox.qml", off: true }
+  { id: "io.github.dankestrick.omagrokbots", key: "grokbots",  name: "Grok Bots", icon: "smart_toy", model: "Inbox.qml" }
 ]
 
 function active() { return LIST.filter(function(p) { return !p.off }) }
