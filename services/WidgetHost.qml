@@ -100,6 +100,12 @@ Singleton {
   function addLive(item) { live = live.concat([item]) }
   function removeLive(item) { live = live.filter(i => i !== item) }
 
+  // Open a widget's dropdown the way Omarchy's own bar does: its open()
+  // (every widget with a dropdown has one). Never a pretend click: on some
+  // widgets a click is an action (the webcam's turns the camera on/off).
+  function canOpen(widget) { return !!widget && typeof widget.open === "function" }
+  function openWidget(widget) { if (!canOpen(widget)) return false; widget.open(); return true }
+
   // A widget's own bar button (the first thing in it that can be pressed).
   function findButton(item) {
     const queue = [{ it: item, d: 0 }]

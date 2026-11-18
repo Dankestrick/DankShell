@@ -36,7 +36,7 @@ Item {
     const isl = focusedIsland()
     if (!isl) return false
     const w = WidgetHost.live.find(x => x.moduleName === id && x.QsWindow.window === isl)
-    if (!w) return false
+    if (!WidgetHost.canOpen(w)) return false
     isl.open()
     pressLater.target = w
     pressLater.restart()
@@ -48,12 +48,7 @@ Item {
     property var target: null
     interval: 250
     onTriggered: {
-      const w = target
-      if (!w) return
-      const b = WidgetHost.findButton(w)
-      if (b) b.triggerPress(Qt.LeftButton)
-      else if (typeof w.toggle === "function") w.toggle()
-      else if (typeof w.open === "function") w.open()
+      if (target) WidgetHost.openWidget(target)
     }
   }
   function hideBarWidget(id) { if (WidgetHost.active && WidgetHost.activeOwnerId === id) { WidgetHost.closeAll(); return true } return false }
@@ -112,7 +107,7 @@ Item {
     function walls(): void { const i = root.focusedIsland(); if (i) { if (i.isWalls) i.state = "closed"; else i.showWalls() } }
     function center(name: string): void {
       if (Popouts.center !== "" && (name === "" || Popouts.center === name)) { Popouts.closeCenter(); return }
-      const i = root.focusedIsland(); if (i) i.showPage(name || "island")
+      const i = root.focusedIsland(); if (i) { i.state = "closed"; Popouts.openCenter(name || "@settings", i.modelData.name) }
     }
     function settings(): void { center("@settings") }
     function plugins(): void { center("@plugins") }

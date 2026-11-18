@@ -15,6 +15,8 @@ Column {
   spacing: 10
 
   readonly property bool isWidget: !!plugin && plugin.use === "widget"
+  // Has a dropdown (open()); otherwise its icon is shown here to click.
+  readonly property bool hasDropdown: isWidget && WidgetHost.canOpen(live.widget)
 
   // ── About ─────────────────────────────────────
   Card {
@@ -49,7 +51,7 @@ Column {
       }
       // Reopen the dropdown after clicking away from it.
       PillButton {
-        visible: page.isWidget && !WidgetHost.popoutOpen
+        visible: page.hasDropdown && !WidgetHost.popoutOpen
         icon: "expand_more"; label: "Show it"
         onClicked: page.openDropdown()
       }
@@ -66,29 +68,34 @@ Column {
   Item {
     id: dropSpot
     width: parent.width
-    height: page.isWidget ? 360 : 0
+    height: !page.isWidget ? 0 : page.hasDropdown ? 360 : 120
     visible: page.isWidget
 
+    // The real widget. Hidden when its dropdown does the talking; shown big
+    // when it has no dropdown, so you click it like on the bar.
     HostedWidget {
       id: live
-      opacity: 0
-      enabled: false
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: 24
+      scale: page.hasDropdown ? 1 : 1.6
+      opacity: page.hasDropdown ? 0 : 1
+      enabled: !page.hasDropdown
       entry: page.isWidget ? (WidgetHost.entries.find(e => e.id === page.plugin.id) || { id: page.plugin.id }) : ({ id: "" })
     }
     Text {
       anchors.centerIn: parent
       visible: !WidgetHost.popoutOpen
-      text: "Its dropdown shows here."
+      anchors.verticalCenterOffset: page.hasDropdown ? 0 : 30
+      width: parent.width - 40
+      horizontalAlignment: Text.AlignHCenter
+      wrapMode: Text.WordWrap
+      text: page.hasDropdown ? "Its dropdown shows here." : "No dropdown: click it like on the bar (left, right and middle click can do different things)."
       color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 11
     }
   }
 
   function openDropdown() {
-    if (!live.widget) return
-    const b = WidgetHost.findButton(live.widget)
-    if (b) b.triggerPress(Qt.LeftButton)
-    else if (typeof live.widget.open === "function") live.widget.open()
-    placeTimer.restart()
+    if (WidgetHost.openWidget(live.widget)) placeTimer.restart()
   }
   // Open it as soon as the page shows.
   Timer { id: openTimer; interval: 350; onTriggered: page.openDropdown() }
