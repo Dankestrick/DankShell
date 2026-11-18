@@ -19,6 +19,7 @@ QtObject {
 
   // ── 3. Accent ─────────────────────────────────
   property color accent: Color.accent
+  property color urgent: Color.urgent   // warnings (low battery)
 
   // ── Fonts ─────────────────────────────────────
   // saneAspect uses "SF Compact Display" (AUR: apple-fonts). Until that's

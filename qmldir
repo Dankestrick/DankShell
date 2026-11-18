@@ -22,6 +22,12 @@ MusicCard 1.0 components/MusicCard.qml
 ToggleTile 1.0 components/ToggleTile.qml
 ListRow 1.0 components/ListRow.qml
 RoundButton 1.0 components/RoundButton.qml
+Card 1.0 components/Card.qml
+DeviceHeader 1.0 components/DeviceHeader.qml
+SwitchRow 1.0 components/SwitchRow.qml
+Chips 1.0 components/Chips.qml
+SliderRow 1.0 components/SliderRow.qml
+Swatches 1.0 components/Swatches.qml
 
 # modules/ — the big parts
 Island 1.0 modules/island/Island.qml
@@ -32,3 +38,4 @@ Dashboard 1.0 modules/island/Dashboard.qml
 Home 1.0 modules/pages/Home.qml
 System 1.0 modules/pages/System.qml
 Pandora 1.0 modules/pages/Pandora.qml
+Kraken 1.0 modules/pages/Kraken.qml

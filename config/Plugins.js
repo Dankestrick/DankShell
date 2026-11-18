@@ -14,7 +14,7 @@
 
 var LIST = [
   { id: "io.github.dankestrick.omapandora",  key: "pandora",   name: "Pandora",   icon: "radio" },
-  { id: "io.github.dankestrick.omakraken",   key: "kraken",    name: "Kraken",    icon: "headphones", off: true },
+  { id: "io.github.dankestrick.omakraken",   key: "kraken",    name: "Kraken",    icon: "headphones" },
   { id: "io.github.dankestrick.omagravastar", key: "gravastar", name: "Gravastar", icon: "mouse", off: true },
   { id: "io.github.dankestrick.omaiphone",   key: "iphone",    name: "iPhone",    icon: "smartphone", off: true },
   { id: "io.github.dankestrick.omajournal",  key: "journal",   name: "Journal",   icon: "edit_note", off: true },
