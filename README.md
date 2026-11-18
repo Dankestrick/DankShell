@@ -43,7 +43,7 @@ Design numbers from saneAspect's videos. Island ideas from ZenoShell (MIT).
 
 ## Newer pieces
 
-- **Center window** (`modules/center/`): plugin pages, Sound & Bluetooth and Settings pop up in the middle of the screen. Open from the dashboard's bottom buttons or the gear, or `qs ipc -p /usr/share/omarchy/shell call dankshell center <page>`.
+- **Center window** (`modules/center/`): opens as **Plugins** (puzzle button; every installed plugin: Running, Not running, Omarchy; use each right there: its page, its real dropdown placed in the window, Open for its own window, Turn on when off; `services/Installed.qml` + `scripts/plugins.py`), **Settings** (gear), or **Notifications / Sound**. `qs ipc -p /usr/share/omarchy/shell call dankshell plugins|settings|center <page>`.
 - **Settings** (`modules/settings/`, `config/SettingsList.js`, `services/Settings.qml`): sliders that reshape the island live; saved in `~/.config/dankshell/settings.json`.
 - **Wallpapers** (`modules/island/WallpaperSwitcher.qml`): the island turns into a carousel. `... call dankshell walls`.
 - **Plugins tab + top row**: every plugin (your page plugins and every bar widget, via `services/WidgetHost.qml` + `config/Widgets.js`) is listed in the Center window's Plugins tab. Pin any of them (Pin button on its page, or Settings › Top row, where arrows set the order) and it joins the island's top row next to themes/wallpapers/settings: page plugins open inside the island like tabs, widgets show their real icon and dropdown. `omarchy-shell shell summon <id>` opens one. `... call dankshell widgets` lists what started.

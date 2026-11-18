@@ -106,7 +106,8 @@ Item {
     Rectangle { visible: dash.pins.length > 0; width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Theme.edge }
     HeaderButton { icon: "palette"; onClicked: dash.themesRequested() }
     HeaderButton { icon: "wallpaper"; onClicked: dash.wallsRequested() }
-    HeaderButton { icon: "settings"; onClicked: dash.pageRequested("island") }
+    HeaderButton { icon: "extension"; onClicked: dash.pageRequested("@plugins") }
+    HeaderButton { icon: "settings"; onClicked: dash.pageRequested("@settings") }
   }
 
   // Unpinned widgets: running, invisible, under the top row (their dropdowns

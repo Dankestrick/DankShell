@@ -8,7 +8,7 @@ import "../../config/SettingsList.js" as SettingsList
 
 // Center — the window that pops up in the middle of the screen, like
 // saneAspect's Settings app. Search box and sidebar on the left, the page on
-// the right. Holds every plugin page, Sound & Bluetooth, and Settings, so
+// the right. Opens as Plugins, Settings, or Notifications/Sound, so
 // the island itself stays clean.
 //
 // Open it from the dashboard's buttons, or:
@@ -34,41 +34,57 @@ PanelWindow {
 
   HyprlandFocusGrab {
     windows: [win]
-    active: win.wanted
-    onCleared: Popouts.closeCenter()
+    // Off while a plugin's dropdown is open in the window.
+    active: win.wanted && !WidgetHost.popoutOpen
+    onCleared: if (!WidgetHost.popoutOpen) Popouts.closeCenter()
   }
 
   // ── Every page, in sidebar order ──────────────
-  readonly property var pages: {
+  // Three kinds of window, each with only its own things in the sidebar:
+  //   plugins:  your installed plugins (Running, Not running, Omarchy)
+  //   settings: the Settings sections
+  //   device:   Notifications, Sound & Bluetooth
+  readonly property var allPages: {
     const out = []
-    // Every plugin: full pages first, then your bar widgets.
-    for (const p of WidgetHost.catalog)
-      out.push({ key: p.key, group: "Plugins", name: p.name, icon: p.icon, sub: p.sub, words: p.kind, plugin: p,
-                 url: p.kind === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
-                                        : Qt.resolvedUrl("WidgetPage.qml") })
-    out.push({ key: "notifications", group: "Device", name: "Notifications", icon: "notifications",
+    for (const p of Installed.items)
+      out.push({ key: p.key, mode: "plugins", group: p.group, name: p.name, icon: p.icon, sub: p.sub,
+                 words: p.id + " " + p.description, plugin: p, pinnable: !!WidgetHost.item(p.key),
+                 url: p.use === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
+                                       : Qt.resolvedUrl("PluginPage.qml") })
+    out.push({ key: "notifications", mode: "device", group: "Device", name: "Notifications", icon: "notifications",
                sub: "Click one to read it all, × to clear it.",
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
-    out.push({ key: "sound", group: "Device", name: "Sound & Bluetooth", icon: "tune",
+    out.push({ key: "sound", mode: "device", group: "Device", name: "Sound & Bluetooth", icon: "tune",
                sub: "Where sound goes and which Bluetooth devices are on.",
                url: Qt.resolvedUrl("../pages/System.qml"), words: "audio output speaker headset bluetooth" })
-    for (const s of SettingsList.SECTIONS)
-      out.push({ key: s.key, group: "Settings", name: s.name, icon: s.icon, sub: s.sub,
-                 url: Qt.resolvedUrl("../settings/SettingsPage.qml"), words: s.words, section: s })
+    for (const sec of SettingsList.SECTIONS)
+      out.push({ key: sec.key, mode: "settings", group: "Settings", name: sec.name, icon: sec.icon, sub: sec.sub,
+                 url: Qt.resolvedUrl("../settings/SettingsPage.qml"), words: sec.words, section: sec })
     return out
   }
+  // "@plugins" / "@settings" open a window on its first page.
+  function resolveStart() {
+    if (Popouts.center.charAt(0) !== "@") return
+    const first = allPages.find(p => p.mode === Popouts.center.slice(1))
+    if (first) Popouts.center = first.key
+  }
+  Connections { target: Popouts; function onCenterChanged() { win.resolveStart() } }
+  onAllPagesChanged: resolveStart()   // the plugin list can arrive a moment later
+  readonly property var current: allPages.find(p => p.key === Popouts.center) || null
+  property string mode: "plugins"
+  onCurrentChanged: if (current) mode = current.mode
+  readonly property var pages: allPages.filter(p => p.mode === mode)
   readonly property var shown: {
     const q = search.text.trim().toLowerCase()
     return q === "" ? pages : pages.filter(p => (p.name + " " + p.words + " " + p.group).toLowerCase().includes(q))
   }
-  readonly property var current: pages.find(p => p.key === Popouts.center) || null
 
   function go(d) {
     const i = shown.findIndex(p => p.key === Popouts.center)
     if (shown.length) Popouts.center = shown[(i + d + shown.length) % shown.length].key
   }
 
-  onWantedChanged: if (wanted) { search.text = ""; search.forceActiveFocus() }
+  onWantedChanged: if (wanted) { search.text = ""; search.forceActiveFocus(); Installed.reload() }
 
   // ── The card ──────────────────────────────────
   Rectangle {
@@ -232,7 +248,7 @@ PanelWindow {
           color: Theme.surfaceRaised
           // Pin to the island's top row (plugins only).
           Rectangle {
-            visible: !!(win.current && win.current.plugin)
+            visible: !!(win.current && win.current.pinnable)
             readonly property bool on: { void(Settings.v.pinned); return !!win.current && Settings.isPinned(win.current.key) }
             anchors.right: parent.right
             anchors.top: parent.top
@@ -297,7 +313,7 @@ PanelWindow {
             if (!active || !win.current) return
             key = win.current.key
             const props = win.current.section ? { section: win.current.section }
-                        : win.current.plugin && win.current.plugin.kind === "widget" ? { plugin: win.current.plugin } : {}
+                        : win.current.plugin && win.current.plugin.use !== "page" ? { plugin: win.current.plugin } : {}
             setSource(win.current.url, props)
           }
           onLoaded: {

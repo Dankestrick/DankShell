@@ -112,6 +112,28 @@ Singleton {
     return null
   }
 
+  // The card of a widget's open dropdown (Omarchy's KeyboardPanel or
+  // PopupCard), so a page can place it. Same search DankBar used.
+  function cardOf(widget) {
+    const queue = [widget], seen = []
+    let panel = null
+    while (queue.length && seen.length < 80) {
+      const c = queue.shift()
+      if (!c || seen.indexOf(c) >= 0) continue
+      seen.push(c)
+      try { if ("anchorItem" in c && "cardOrigin" in c && "contentWidth" in c && "open" in c) { panel = c; break } } catch (e) { }
+      if (c.children) for (let i = 0; i < c.children.length; i++) queue.push(c.children[i])
+      if (c.data) for (let j = 0; j < c.data.length; j++) queue.push(c.data[j])
+      try { if (c.item && typeof c.item === "object") queue.push(c.item) } catch (e) { }
+    }
+    if (!panel) return null
+    let objs = []
+    if (panel.contentItem && panel.contentItem.children) objs = objs.concat(Array.from(panel.contentItem.children))
+    if (panel.data) objs = objs.concat(Array.from(panel.data))
+    for (const o of objs) { try { if (o && "contentTopInset" in o && "radius" in o && "color" in o) return o } catch (e) { } }
+    return null
+  }
+
   // One api per widget id, shared by every monitor (as the stock bar does).
   property var apis: ({})
   function apiFor(id) {

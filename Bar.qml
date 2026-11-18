@@ -114,7 +114,8 @@ Item {
       if (Popouts.center !== "" && (name === "" || Popouts.center === name)) { Popouts.closeCenter(); return }
       const i = root.focusedIsland(); if (i) i.showPage(name || "island")
     }
-    function settings(): void { center("island") }
+    function settings(): void { center("@settings") }
+    function plugins(): void { center("@plugins") }
     function gamemode(): void { Toggles.toggleGameMode() }
     // What the widget strip sees: each widget id and whether it started.
     function widgets(): string {

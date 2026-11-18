@@ -35,7 +35,7 @@ QtObject {
 
   // ── Center window (plugins + settings) ───────
   property int centerWidth: 780
-  property int centerHeight: 540
+  property int centerHeight: 660
 
   // Tallest the island can get (the window reserves this much room to draw in).
   readonly property int expandedHeight: Math.max(hoverHeight, dashHeight)
