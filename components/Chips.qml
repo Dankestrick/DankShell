@@ -1,13 +1,15 @@
 import QtQuick
 import "../"
 
-// Chips — a row of choices; the picked one is lit. `model` = list of labels.
-Row {
+// Chips — choices that wrap onto more lines when needed; the picked one is lit.
+// `model` = list of labels.
+Flow {
   id: chips
   property var model: []
   property int current: -1
   signal picked(int index)
 
+  width: parent ? parent.width : implicitWidth
   spacing: 6
   opacity: enabled ? 1 : 0.45
 
