@@ -22,7 +22,7 @@ QtObject {
 
   // ── Dashboard (click the card) ────────────────
   property int dashWidth: 460       // width of the open dashboard
-  property int dashHeight: 236      // height; grows as pages get more on them
+  property int dashHeight: 236      // smallest height; it grows to fit what's on the page
   property int radiusExpanded: 31   // corner rounding when open (saneAspect: 31)
   property int dashPadding: 16      // space between the dashboard's edge and its cards
   property int cardRadius: 18       // corner rounding of cards inside the dashboard

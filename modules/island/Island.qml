@@ -27,7 +27,7 @@ PanelWindow {
 
   anchors { top: true; left: true; right: true }
   color: "transparent"
-  implicitHeight: Sizes.reserved + Sizes.expandedHeight + 24  // room to grow into
+  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight) + 24  // room to grow into
   exclusiveZone: hidden ? 0 : Sizes.reserved
   WlrLayershell.namespace: "dankshell-island"
   WlrLayershell.layer: WlrLayer.Top
@@ -35,6 +35,9 @@ PanelWindow {
 
   // Only the pill takes clicks; the empty strip around it lets them through.
   mask: Region { item: pill }
+
+  // Toggle states only refresh while a dashboard is open.
+  onIsOpenChanged: Toggles.watching = isOpen
 
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
@@ -79,7 +82,7 @@ PanelWindow {
          : island.state === "hover" ? Sizes.hoverWidth
          : island.state === "bubble" ? closedWidth + Sizes.hoverLift * 2
          : closedWidth
-    height: island.isOpen ? Sizes.dashHeight
+    height: island.isOpen ? Math.max(Sizes.dashHeight, dashboard.contentHeight)
           : island.state === "hover" ? Sizes.hoverHeight
           : island.state === "bubble" ? Sizes.barHeight + Sizes.hoverLift
           : Sizes.barHeight
@@ -114,8 +117,9 @@ PanelWindow {
     }
 
     Dashboard {
+      id: dashboard
       width: Sizes.dashWidth
-      height: Sizes.dashHeight
+      height: Math.max(Sizes.dashHeight, contentHeight)
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.top: parent.top
       opacity: island.isOpen ? 1 : 0

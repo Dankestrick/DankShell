@@ -10,6 +10,7 @@ singleton Theme 1.0 config/Theme.qml
 singleton Time 1.0 services/Time.qml
 singleton Media 1.0 services/Media.qml
 singleton Audio 1.0 services/Audio.qml
+singleton Toggles 1.0 services/Toggles.qml
 
 # components/ — small reusable pieces
 Pill 1.0 components/Pill.qml
@@ -17,6 +18,7 @@ Icon 1.0 components/Icon.qml
 WorkspaceDots 1.0 components/WorkspaceDots.qml
 Slider 1.0 components/Slider.qml
 MusicCard 1.0 components/MusicCard.qml
+ToggleTile 1.0 components/ToggleTile.qml
 
 # modules/ — the big parts
 Island 1.0 modules/island/Island.qml
