@@ -31,6 +31,10 @@ Singleton {
     for (const d of adapter.devices.values) if (d.connected) n++
     return n
   }
+  // Paired devices, connected ones first.
+  readonly property var btDevices: adapter
+    ? adapter.devices.values.filter(d => d.paired || d.bonded).sort((a, b) => (b.connected ? 1 : 0) - (a.connected ? 1 : 0))
+    : []
   function toggleBluetooth() { if (adapter) adapter.enabled = !adapter.enabled }
 
   // ── Night Light ───────────────────────────────

@@ -13,6 +13,11 @@ Singleton {
   readonly property bool muted: ready ? sink.audio.muted : false
   readonly property string name: sink ? (sink.description || sink.name || "") : ""
 
+  // Every real output (speakers, headset, HDMI), not app streams.
+  readonly property var outputs: (Pipewire.nodes ? Pipewire.nodes.values : [])
+    .filter(n => n && n.isSink && !n.isStream && n.audio)
+
+  function useOutput(node) { if (node) Pipewire.preferredDefaultAudioSink = node }
   function setVolume(v) { if (ready) sink.audio.volume = Math.max(0, Math.min(1, v)) }
   function toggleMute() { if (ready) sink.audio.muted = !sink.audio.muted }
 

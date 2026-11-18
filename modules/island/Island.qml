@@ -37,8 +37,9 @@ PanelWindow {
   mask: Region { item: pill }
 
   // Toggle states only refresh while a dashboard is open.
-  onIsOpenChanged: Toggles.watching = isOpen
+  onIsOpenChanged: { Toggles.watching = isOpen; if (!isOpen) dashboard.reset() }
 
+  function showPage(key) { open(); dashboard.page = key }
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
 

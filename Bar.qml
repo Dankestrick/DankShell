@@ -68,6 +68,7 @@ Item {
     target: "dankshell"
     function toggle(): void { const i = root.focusedIsland(); if (i) { if (i.isOpen) i.state = "closed"; else i.open() } }
     function open(): void { const i = root.focusedIsland(); if (i) i.open() }
+    function page(name: string): void { const i = root.focusedIsland(); if (i) i.showPage(name) }
     function close(): void { for (const i of islands.instances) i.state = "closed" }
   }
 }

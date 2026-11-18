@@ -19,8 +19,13 @@ WorkspaceDots 1.0 components/WorkspaceDots.qml
 Slider 1.0 components/Slider.qml
 MusicCard 1.0 components/MusicCard.qml
 ToggleTile 1.0 components/ToggleTile.qml
+ListRow 1.0 components/ListRow.qml
 
 # modules/ — the big parts
 Island 1.0 modules/island/Island.qml
 Hover 1.0 modules/island/Hover.qml
 Dashboard 1.0 modules/island/Dashboard.qml
+
+# modules/pages/ — one file per dashboard page
+Home 1.0 modules/pages/Home.qml
+System 1.0 modules/pages/System.qml
