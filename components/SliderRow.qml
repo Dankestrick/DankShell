@@ -52,7 +52,8 @@ Item {
       onPressed: (m) => { row.dragValue = at(m.x); if (row.live) row.moved(row.dragValue) }
       onPositionChanged: (m) => { if (pressed) { row.dragValue = at(m.x); if (row.live) row.moved(row.dragValue) } }
       onReleased: if (!row.live) row.moved(row.dragValue)
-      onWheel: (w) => row.moved(Math.max(0, Math.min(1, row.value + (w.angleDelta.y > 0 ? 0.05 : -0.05))))
+      // The scroll wheel scrolls the page; only a click or drag changes the value.
+      onWheel: (w) => w.accepted = false
     }
   }
   Text {

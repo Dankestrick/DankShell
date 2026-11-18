@@ -65,7 +65,8 @@ Item {
       function at(x) { return row.snap(x / track.width) }
       onPressed: (m) => row.moved(at(m.x))
       onPositionChanged: (m) => { if (pressed) row.moved(at(m.x)) }
-      onWheel: (w) => row.moved(row.snap(row.frac + (w.angleDelta.y > 0 ? 1 : -1) * Math.max(row.step / (row.max - row.min), 0.02)))
+      // The scroll wheel scrolls the page; only a click or drag changes the value.
+      onWheel: (w) => w.accepted = false
     }
   }
   Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.edge }
