@@ -28,6 +28,7 @@ SwitchRow 1.0 components/SwitchRow.qml
 Chips 1.0 components/Chips.qml
 SliderRow 1.0 components/SliderRow.qml
 Swatches 1.0 components/Swatches.qml
+Field 1.0 components/Field.qml
 
 # modules/ — the big parts
 Island 1.0 modules/island/Island.qml
@@ -41,3 +42,4 @@ Pandora 1.0 modules/pages/Pandora.qml
 Kraken 1.0 modules/pages/Kraken.qml
 Gravastar 1.0 modules/pages/Gravastar.qml
 Iphone 1.0 modules/pages/Iphone.qml
+Journal 1.0 modules/pages/Journal.qml
