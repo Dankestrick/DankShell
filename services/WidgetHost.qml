@@ -1,0 +1,121 @@
+pragma Singleton
+import QtQuick
+import Quickshell
+import qs.Ui
+import ".."
+import "../config/Widgets.js" as Widgets
+
+// WidgetHost — runs your Omarchy bar widgets (webcam, mail, Dropbox, network,
+// DualSense, weather, updates, tray...) inside DankShell, the way the stock
+// bar does: each widget gets Omarchy's own PluginBarApi as its `bar`, so it
+// works exactly as it does on the stock bar, dropdown included.
+//
+// The one change: a dropdown asks the bar how far down to open
+// (`barSizeFor`), and we answer "just under the island" for that monitor.
+Singleton {
+  id: host
+
+  // Set by Bar.qml from what Omarchy hands the bar.
+  property var registry: null
+  property var shell: null
+
+  // The widgets to show: their shell.json entries, in bar order.
+  readonly property var entries: {
+    const cfg = PluginHost.shellConfig || {}
+    const layout = cfg.bar && cfg.bar.layout ? cfg.bar.layout : {}
+    const out = [], seen = {}
+    for (const sec of Widgets.SECTIONS) {
+      for (const e of (Array.isArray(layout[sec]) ? layout[sec] : [])) {
+        const id = typeof e === "string" ? e : (e && e.id ? String(e.id) : "")
+        if (!id || seen[id] || Widgets.SKIP.indexOf(id) >= 0) continue
+        seen[id] = true
+        out.push(typeof e === "string" ? { id: id } : e)
+      }
+    }
+    return out
+  }
+  function componentFor(id) {
+    const reg = registry
+    if (!reg || !reg.widgets) return null
+    void(reg.revision)
+    return reg.widgets[id] ? reg.widgets[id].component : null
+  }
+
+  // ── How far down a dropdown opens, per monitor ──
+  property var drops: ({})
+  function setDrop(screenName, y) {
+    if (drops[screenName] === y) return
+    const next = Object.assign({}, drops); next[screenName] = y; drops = next
+  }
+  function dropFor(screenName) { return drops[screenName] || 44 }
+
+  // ── One open dropdown at a time ───────────────
+  property var active: null
+  property string activeOwnerId: ""
+  readonly property bool popoutOpen: active !== null
+  function requestPopout(pluginId, owner) {
+    if (active === owner) return
+    const old = active
+    active = owner
+    activeOwnerId = pluginId
+    if (old) {
+      if (typeof old.closeForPopoutSwitch === "function") old.closeForPopoutSwitch()
+      else if (typeof old.close === "function") old.close()
+    }
+  }
+  function releasePopout(owner) { if (active === owner) { active = null; activeOwnerId = "" } }
+  function closeAll() { const a = active; if (a && typeof a.close === "function") a.close(); active = null; activeOwnerId = "" }
+
+  // ── Tooltip text (the dashboard shows it under its buttons) ──
+  property string tip: ""
+
+  // ── Live widgets, for broadcast() and click targets ──
+  property var live: []
+  property var targets: []     // [{ id, target }]
+  function addLive(item) { live = live.concat([item]) }
+  function removeLive(item) { live = live.filter(i => i !== item) }
+
+  // A widget's own bar button (the first thing in it that can be pressed).
+  function findButton(item) {
+    const queue = [{ it: item, d: 0 }]
+    while (queue.length) {
+      const n = queue.shift()
+      if (n.it && typeof n.it.triggerPress === "function") return n.it
+      if (!n.it || n.d >= 6 || !n.it.children) continue
+      for (let i = 0; i < n.it.children.length; i++) queue.push({ it: n.it.children[i], d: n.d + 1 })
+    }
+    return null
+  }
+
+  // One api per widget id, shared by every monitor (as the stock bar does).
+  property var apis: ({})
+  function apiFor(id) {
+    if (apis[id]) return apis[id]
+    const entryShell = shell && typeof shell.pluginShellForBarEntry === "function"
+      ? shell.pluginShellForBarEntry("io.github.dankestrick.dankshell", id) : null
+    const api = apiComponent.createObject(host, {
+      pluginId: id, moduleName: id, shell: entryShell,
+      _showTooltip: function(target, text) { host.tip = text },
+      _hideTooltip: function(target) { host.tip = "" },
+      _registerClickTarget: function(t) { host.targets = host.targets.concat([{ id: id, target: t }]) },
+      _unregisterClickTarget: function(t) { host.targets = host.targets.filter(x => x.target !== t) },
+      _requestPopout: function(owner) { host.requestPopout(id, owner) },
+      _releasePopout: function(owner) { host.releasePopout(owner) },
+      _switchPanelFrom: function(owner, direction) { return false },
+      _notePopoutCard: function(card) { },
+      _popoutCardFor: function(owner) { return null },
+      _targetBelongsToWindow: function(target, window) {
+        try { return !!target && target.QsWindow.window === window } catch (e) { return false }
+      },
+      _moduleWidgets: function(requested) {
+        return String(requested) === id ? host.live.filter(w => w.moduleName === id) : []
+      },
+      _run: function(command) { if (command) Quickshell.execDetached(["bash", "-c", String(command)]) },
+      _setCenterHoverRevealSuppressed: function(v) { }
+    })
+    const next = Object.assign({}, apis); next[id] = api; apis = next
+    return api
+  }
+
+  Component { id: apiComponent; DankBarApi { } }
+}

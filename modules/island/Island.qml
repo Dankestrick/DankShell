@@ -40,7 +40,12 @@ PanelWindow {
   mask: Region { item: pill }
 
   // Toggle states only refresh while a dashboard is open.
-  onIsOpenChanged: { Toggles.watching = isOpen; if (!isOpen) dashboard.reset() }
+  onIsOpenChanged: { Toggles.watching = isOpen; if (!isOpen) { dashboard.reset(); if (WidgetHost.popoutOpen) WidgetHost.closeAll() } }
+
+  // Widget dropdowns open just under the island on this monitor.
+  readonly property int dropY: Sizes.gapFromEdge + pill.height
+  onDropYChanged: WidgetHost.setDrop(modelData.name, dropY)
+  Component.onCompleted: WidgetHost.setDrop(modelData.name, dropY)
 
   // A plugin page or a settings section pops up in the Center window.
   function showPage(key) { state = "closed"; Popouts.openCenter(key, modelData.name) }
@@ -52,8 +57,10 @@ PanelWindow {
   // A click anywhere outside the island closes the dashboard.
   HyprlandFocusGrab {
     windows: [island]
-    active: island.held
-    onCleared: if (island.held) island.state = "closed"
+    // Off while one of your bar widgets has its dropdown open, so clicking
+    // into the dropdown doesn't close the dashboard behind it.
+    active: island.held && !WidgetHost.popoutOpen
+    onCleared: if (island.held && !WidgetHost.popoutOpen) island.state = "closed"
   }
 
   // ── Hover timing ──────────────────────────────

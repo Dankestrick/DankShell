@@ -46,4 +46,6 @@ Design numbers from saneAspect's videos. Island ideas from ZenoShell (MIT).
 - **Center window** (`modules/center/`): plugin pages, Sound & Bluetooth and Settings pop up in the middle of the screen. Open from the dashboard's bottom buttons or the gear, or `qs ipc -p /usr/share/omarchy/shell call dankshell center <page>`.
 - **Settings** (`modules/settings/`, `config/SettingsList.js`, `services/Settings.qml`): sliders that reshape the island live; saved in `~/.config/dankshell/settings.json`.
 - **Wallpapers** (`modules/island/WallpaperSwitcher.qml`): the island turns into a carousel. `... call dankshell walls`.
+- **Your other bar widgets** (`services/WidgetHost.qml`, `config/Widgets.js`): webcam, mail, Dropbox, network, DualSense, ProtonVPN, weather, updates, Superwhisper, tray and the rest run as their real selves in a strip in the dashboard; their dropdowns open under the island. `omarchy-shell shell summon <id>` opens one. `... call dankshell widgets` lists what started.
+- **Date** under the dashboard clock opens the Journal.
 - **Game mode** (`scripts/gamemode on|off|toggle|status`): stay awake, notifications silenced, animations off, night light off, performance power profile; off puts each back. Tile on Home, or `... call dankshell gamemode`.

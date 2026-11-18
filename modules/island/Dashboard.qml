@@ -14,7 +14,7 @@ import "../../config/Plugins.js" as Plugins
 Item {
   id: dash
 
-  readonly property int headerHeight: 52
+  readonly property int headerHeight: 68
   property string hoverName: ""
 
   signal closeRequested()
@@ -44,11 +44,36 @@ Item {
     }
   }
 
+  // ── Date under the clock: click it for the Journal (OmaJournal) ──
+  Rectangle {
+    id: dateChip
+    x: Sizes.dashPadding
+    y: 46
+    width: dateText.implicitWidth + 12
+    height: 20
+    radius: 10
+    color: dateTap.containsMouse ? Theme.surfaceRaised : "transparent"
+    Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+    Text {
+      id: dateText
+      anchors.centerIn: parent
+      text: Time.dateLong
+      color: dateTap.containsMouse ? Theme.accent : Theme.textDim
+      font.family: Theme.fontText
+      font.pixelSize: 11
+    }
+    MouseArea {
+      id: dateTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+      onClicked: dash.pageRequested(Plugins.byKey("journal") ? "journal" : "island")
+      onContainsMouseChanged: dash.hoverName = containsMouse ? "Journal" : ""
+    }
+  }
+
   // ── Header buttons ────────────────────────────
   Row {
     anchors.right: parent.right
     anchors.rightMargin: Sizes.dashPadding - 4
-    y: 13
+    y: 17
     spacing: 2
     HeaderButton { icon: "palette"; tip: "Themes"; onClicked: dash.themesRequested() }
     HeaderButton { icon: "wallpaper"; tip: "Wallpapers"; onClicked: dash.wallsRequested() }
@@ -63,11 +88,37 @@ Item {
     width: parent.width - Sizes.dashPadding * 2
   }
 
+  // ── Your bar widgets, the real ones ───────────
+  // Webcam, mail, Dropbox, network, DualSense, weather, updates, tray...
+  // Each keeps its own dropdown, which opens under the island.
+  // Which ones: config/Widgets.js.
+  Rectangle {
+    id: widgetStrip
+    x: Sizes.dashPadding
+    y: home.y + home.implicitHeight + 10
+    width: parent.width - Sizes.dashPadding * 2
+    height: flow.implicitHeight > 0 ? flow.implicitHeight + 12 : 0
+    visible: height > 0
+    radius: Sizes.cardRadius
+    color: Theme.surfaceRaised
+    Flow {
+      id: flow
+      x: 10
+      width: parent.width - 20
+      anchors.verticalCenter: parent.verticalCenter
+      spacing: 4
+      Repeater {
+        model: WidgetHost.entries
+        HostedWidget { required property var modelData; entry: modelData }
+      }
+    }
+  }
+
   // ── Plugin buttons ────────────────────────────
   Row {
     id: dock
     anchors.horizontalCenter: parent.horizontalCenter
-    y: home.y + home.implicitHeight + 12
+    y: widgetStrip.y + widgetStrip.height + 12
     spacing: 8
 
     Repeater {
@@ -95,8 +146,8 @@ Item {
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: dock.bottom
     anchors.topMargin: 6
-    text: dash.hoverName
-    opacity: dash.hoverName !== "" ? 1 : 0
+    text: dash.hoverName || WidgetHost.tip
+    opacity: text !== "" ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
     color: Theme.textDim
     font.family: Theme.fontText
