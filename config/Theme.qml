@@ -26,4 +26,14 @@ QtObject {
   property string fontText: Style.font.family     // everything else
   property int clockSize: 14
   property int clockWeight: Font.DemiBold
+
+  // ── Icons ─────────────────────────────────────
+  // Material Symbols: type the icon's name as text ("wifi", "battery_full",
+  // "music_note") and the font draws the icon. Names: fonts.google.com/icons
+  property string iconFont: "Material Symbols Rounded"
+  property int iconSize: 16
+  // The font's four dials (saneAspect's settings):
+  //   FILL 0 = outline, 1 = solid · wght 100 thin to 700 bold
+  //   GRAD -25 to 200 emphasis   · opsz = the size it's drawn at
+  property var iconAxes: ({ "FILL": 0, "wght": 700, "GRAD": 0, "opsz": iconSize })
 }
