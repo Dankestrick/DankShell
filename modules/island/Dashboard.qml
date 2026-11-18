@@ -1,50 +1,60 @@
 import QtQuick
 import "../../"
-import "../../config/Plugins.js" as Plugins
 
 // Dashboard — what the island opens into when you click it.
 // The clock isn't in here: it's the same clock from the pill, sliding into
 // the top-left corner (see Island.qml). This file leaves room for it.
 //
-// Header (right): themes, wallpapers, settings.
-// Body: Home (toggles, music, volume, notifications).
-// Bottom: one round button per plugin. A plugin's page pops up in the
-// Center window in the middle of the screen (modules/center/Center.qml),
-// so the island never fills up with tabs.
+// Top left:  the date under the clock (click it for the Journal).
+// Top right: your pinned plugins, then themes, wallpapers, settings.
+//   A pinned page plugin (Pandora, Kraken...) opens right here, sliding in
+//   like a tab; click it again to go back Home.
+//   A pinned widget (network, mail...) is the real widget with its dropdown.
+// Every plugin, pinned or not, is in the Center window's Plugins tab.
+// Pin them there, or in Settings › Top row.
 Item {
   id: dash
 
   readonly property int headerHeight: 68
-  property string hoverName: ""
+  property string page: "home"
 
   signal closeRequested()
   signal themesRequested()
   signal wallsRequested()
-  signal pageRequested(string key)   // open this page in the Center window
+  signal pageRequested(string key)   // open this in the Center window
 
-  function reset() { hoverName = "" }
+  function reset() { page = "home" }
 
-  // Plugin buttons, minus the ones hidden in Settings › Dashboard.
-  readonly property var apps: Plugins.active()
-    .filter(p => Settings.v.hiddenApps.indexOf(p.key) < 0)
-    .concat([{ key: "sound", name: "Sound & Bluetooth", icon: "tune" }])
+  // Pinned plugins, in the order they were pinned.
+  readonly property var pins: Settings.v.pinned.map(k => WidgetHost.item(k)).filter(c => !!c)
+  // Pages the dashboard can show: Home + pinned page plugins.
+  readonly property var pages: [{ key: "home", file: "Home.qml" }]
+    .concat(pins.filter(p => p.kind === "page").map(p => ({ key: p.key, file: p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml" })))
+  // Widgets that aren't pinned still run here, out of sight, so the Plugins
+  // tab can open their dropdown.
+  readonly property var stashed: WidgetHost.catalog.filter(c => c.kind === "widget" && Settings.v.pinned.indexOf(c.key) < 0)
 
-  component HeaderButton: Rectangle {
-    property string icon: ""
-    property string tip: ""
-    signal clicked()
-    width: 32; height: 30; radius: 15
-    color: tap.containsMouse ? Theme.surfaceRaised : "transparent"
-    Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
-    Icon { anchors.centerIn: parent; name: parent.icon; color: tap.containsMouse ? Theme.text : Theme.textDim }
-    MouseArea {
-      id: tap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-      onClicked: parent.clicked()
-      onContainsMouseChanged: dash.hoverName = containsMouse ? parent.tip : ""
-    }
+  function openPage(key) {
+    if (pages.some(p => p.key === key)) page = (page === key ? "home" : key)
+    else pageRequested(key)
   }
 
-  // ── Date under the clock: click it for the Journal (OmaJournal) ──
+  // Wide enough for the date and every button in the top row.
+  readonly property int neededWidth: dateChip.width + topRow.width + Sizes.dashPadding * 2 + 16
+
+  component HeaderButton: Rectangle {
+    id: hb
+    property string icon: ""
+    property bool lit: false
+    signal clicked()
+    width: 30; height: 30; radius: 15
+    color: lit ? Theme.accent : tap.containsMouse ? Theme.surfaceRaised : "transparent"
+    Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+    Icon { anchors.centerIn: parent; name: hb.icon; filled: hb.lit; color: hb.lit ? Theme.surface : tap.containsMouse ? Theme.text : Theme.textDim }
+    MouseArea { id: tap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: hb.clicked() }
+  }
+
+  // ── Date under the clock: click it for the Journal ──
   Rectangle {
     id: dateChip
     x: Sizes.dashPadding
@@ -58,102 +68,97 @@ Item {
       id: dateText
       anchors.centerIn: parent
       text: Time.dateLong
-      color: dateTap.containsMouse ? Theme.accent : Theme.textDim
+      color: dateTap.containsMouse || dash.page === "journal" ? Theme.accent : Theme.textDim
       font.family: Theme.fontText
       font.pixelSize: 11
     }
-    MouseArea {
-      id: dateTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-      onClicked: dash.pageRequested(Plugins.byKey("journal") ? "journal" : "island")
-      onContainsMouseChanged: dash.hoverName = containsMouse ? "Journal" : ""
-    }
+    MouseArea { id: dateTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: dash.openPage("journal") }
   }
 
-  // ── Header buttons ────────────────────────────
+  // ── Top row ───────────────────────────────────
   Row {
+    id: topRow
     anchors.right: parent.right
     anchors.rightMargin: Sizes.dashPadding - 4
     y: 17
     spacing: 2
-    HeaderButton { icon: "palette"; tip: "Themes"; onClicked: dash.themesRequested() }
-    HeaderButton { icon: "wallpaper"; tip: "Wallpapers"; onClicked: dash.wallsRequested() }
-    HeaderButton { icon: "settings"; tip: "Settings"; onClicked: dash.pageRequested("island") }
-  }
 
-  // ── Home ──────────────────────────────────────
-  Home {
-    id: home
-    x: Sizes.dashPadding
-    y: dash.headerHeight + 8
-    width: parent.width - Sizes.dashPadding * 2
-  }
-
-  // ── Your bar widgets, the real ones ───────────
-  // Webcam, mail, Dropbox, network, DualSense, weather, updates, tray...
-  // Each keeps its own dropdown, which opens under the island.
-  // Which ones: config/Widgets.js.
-  Rectangle {
-    id: widgetStrip
-    x: Sizes.dashPadding
-    y: home.y + home.implicitHeight + 10
-    width: parent.width - Sizes.dashPadding * 2
-    height: flow.implicitHeight > 0 ? flow.implicitHeight + 12 : 0
-    visible: height > 0
-    radius: Sizes.cardRadius
-    color: Theme.surfaceRaised
-    Flow {
-      id: flow
-      x: 10
-      width: parent.width - 20
-      anchors.verticalCenter: parent.verticalCenter
-      spacing: 4
-      Repeater {
-        model: WidgetHost.entries
-        HostedWidget { required property var modelData; entry: modelData }
+    Repeater {
+      model: dash.pins
+      Item {
+        required property var modelData
+        width: modelData.kind === "widget" ? live.implicitWidth : 30
+        height: 30
+        HeaderButton {
+          visible: modelData.kind === "page"
+          icon: modelData.icon
+          lit: dash.page === modelData.key
+          onClicked: dash.openPage(modelData.key)
+        }
+        HostedWidget {
+          id: live
+          visible: modelData.kind === "widget"
+          anchors.verticalCenter: parent.verticalCenter
+          entry: modelData.kind === "widget" ? modelData.entry : ({ id: "" })
+        }
       }
+    }
+    Rectangle { visible: dash.pins.length > 0; width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Theme.edge }
+    HeaderButton { icon: "palette"; onClicked: dash.themesRequested() }
+    HeaderButton { icon: "wallpaper"; onClicked: dash.wallsRequested() }
+    HeaderButton { icon: "settings"; onClicked: dash.pageRequested("island") }
+  }
+
+  // Unpinned widgets: running, invisible, under the top row (their dropdowns
+  // still open in the right spot when the Plugins tab asks).
+  Row {
+    anchors.right: topRow.right
+    y: topRow.y
+    opacity: 0
+    enabled: false
+    Repeater {
+      model: dash.stashed
+      HostedWidget { required property var modelData; entry: modelData.entry }
     }
   }
 
-  // ── Plugin buttons ────────────────────────────
-  Row {
-    id: dock
-    anchors.horizontalCenter: parent.horizontalCenter
-    y: widgetStrip.y + widgetStrip.height + 12
-    spacing: 8
+  // ── Pages ─────────────────────────────────────
+  // Each page slides and fades in; the dashboard height follows the page.
+  Item {
+    id: pageArea
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.margins: Sizes.dashPadding
+    y: dash.headerHeight + 6
+    height: current ? current.implicitHeight : 0
+    property var current: null
 
     Repeater {
-      model: dash.apps
-      Rectangle {
-        id: app
+      model: dash.pages
+      Loader {
         required property var modelData
-        width: 40; height: 40; radius: 20
-        color: appTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.8) : Theme.surfaceRaised
-        scale: appTap.pressed ? 0.92 : appTap.containsMouse ? 1.08 : 1
-        Behavior on scale { NumberAnimation { duration: Motion.ms(Motion.hover); easing.type: Easing.OutBack } }
-        Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
-        Icon { anchors.centerIn: parent; name: app.modelData.icon; color: appTap.containsMouse ? Theme.accent : Theme.text; font.pixelSize: 18 }
-        MouseArea {
-          id: appTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-          onClicked: dash.pageRequested(app.modelData.key)
-          onContainsMouseChanged: dash.hoverName = containsMouse ? app.modelData.name : ""
+        required property int index
+        readonly property bool here: dash.page === modelData.key
+        width: pageArea.width
+        source: Qt.resolvedUrl("../pages/" + modelData.file)
+        opacity: here ? 1 : 0
+        x: here ? 0 : (index < dash.pages.findIndex(p => p.key === dash.page) ? -24 : 24)
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
+        Behavior on x { NumberAnimation { duration: Motion.ms(Motion.move); easing.type: Easing.OutCubic } }
+        onHereChanged: if (here) pageArea.current = item
+        onLoaded: {
+          item.width = Qt.binding(() => pageArea.width)
+          if ("showing" in item) item.showing = Qt.binding(() => here && dash.visible)
+          if (item.closeRequested) item.closeRequested.connect(dash.closeRequested)
+          if (here) pageArea.current = item
         }
       }
     }
   }
-  // Name of the button under the mouse.
-  Text {
-    id: tipText
-    anchors.horizontalCenter: parent.horizontalCenter
-    anchors.top: dock.bottom
-    anchors.topMargin: 6
-    text: dash.hoverName || WidgetHost.tip
-    opacity: text !== "" ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
-    color: Theme.textDim
-    font.family: Theme.fontText
-    font.pixelSize: 10
-  }
+  // A pinned page you unpin while it's showing: back to Home.
+  onPagesChanged: if (!pages.some(p => p.key === page)) page = "home"
 
   // The dashboard's real height, so the island can size itself to fit.
-  readonly property int contentHeight: tipText.y + 14 + Sizes.dashPadding - 4
+  readonly property int contentHeight: pageArea.y + pageArea.height + Sizes.dashPadding
 }

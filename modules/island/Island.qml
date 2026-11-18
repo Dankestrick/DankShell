@@ -47,8 +47,14 @@ PanelWindow {
   onDropYChanged: WidgetHost.setDrop(modelData.name, dropY)
   Component.onCompleted: WidgetHost.setDrop(modelData.name, dropY)
 
-  // A plugin page or a settings section pops up in the Center window.
-  function showPage(key) { state = "closed"; Popouts.openCenter(key, modelData.name) }
+  // The dashboard grows wider when the top row needs the room.
+  readonly property int dashWidth: Math.max(Sizes.dashWidth, dashboard.neededWidth)
+
+  // A pinned page opens in the island; anything else in the Center window.
+  function showPage(key) {
+    if (dashboard.pages.some(p => p.key === key)) { open(); dashboard.page = key }
+    else { state = "closed"; Popouts.openCenter(key, modelData.name) }
+  }
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
   function showThemes() { openTimer.stop(); closeTimer.stop(); state = "themes"; themeSwitcher.reset() }
@@ -94,7 +100,7 @@ PanelWindow {
 
     width: island.isWalls ? Sizes.wallsWidth
          : island.isThemes ? Sizes.themesWidth
-         : island.isOpen ? Sizes.dashWidth
+         : island.isOpen ? island.dashWidth
          : island.state === "hover" ? Sizes.hoverWidth
          : island.state === "bubble" ? closedWidth + Sizes.hoverLift * 2
          : closedWidth
@@ -139,8 +145,8 @@ PanelWindow {
       onCloseRequested: island.state = "closed"
       onThemesRequested: island.showThemes()
       onWallsRequested: island.showWalls()
-      onPageRequested: (key) => island.showPage(key)
-      width: Sizes.dashWidth
+      onPageRequested: (key) => { island.state = "closed"; Popouts.openCenter(key, island.modelData.name) }
+      width: island.dashWidth
       height: Math.max(Sizes.dashHeight, contentHeight)
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.top: parent.top

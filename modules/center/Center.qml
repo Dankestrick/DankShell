@@ -41,9 +41,11 @@ PanelWindow {
   // ── Every page, in sidebar order ──────────────
   readonly property var pages: {
     const out = []
-    for (const p of Plugins.active())
-      out.push({ key: p.key, group: "Plugins", name: p.name, icon: p.icon, sub: p.sub || "",
-                 url: Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml"), words: "" })
+    // Every plugin: full pages first, then your bar widgets.
+    for (const p of WidgetHost.catalog)
+      out.push({ key: p.key, group: "Plugins", name: p.name, icon: p.icon, sub: p.sub, words: p.kind, plugin: p,
+                 url: p.kind === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
+                                        : Qt.resolvedUrl("WidgetPage.qml") })
     out.push({ key: "sound", group: "Device", name: "Sound & Bluetooth", icon: "tune",
                sub: "Where sound goes and which Bluetooth devices are on.",
                url: Qt.resolvedUrl("../pages/System.qml"), words: "audio output speaker headset bluetooth" })
@@ -124,6 +126,7 @@ PanelWindow {
       }
 
       Flickable {
+        id: sideFlick
         anchors.top: searchBox.bottom
         anchors.topMargin: 10
         anchors.bottom: parent.bottom
@@ -159,7 +162,16 @@ PanelWindow {
                 font.capitalization: Font.AllUppercase
               }
               Rectangle {
+                id: sideItem
                 readonly property bool here: Popouts.center === modelData.key
+                // Keep the picked page in view in a long list.
+                onHereChanged: if (here) Qt.callLater(() => {
+                  const y = sideItem.mapToItem(list, 0, 0).y
+                  if (y < sideFlick.contentY) sideFlick.contentY = Math.max(0, y - 30)
+                  else if (y + height > sideFlick.contentY + sideFlick.height)
+                    sideFlick.contentY = Math.min(sideFlick.contentHeight - sideFlick.height, y + height - sideFlick.height + 10)
+                })
+                Component.onCompleted: if (here) hereChanged()
                 width: parent.width
                 height: 38
                 radius: 19
@@ -215,6 +227,27 @@ PanelWindow {
           height: 132
           radius: Sizes.cardRadius + 4
           color: Theme.surfaceRaised
+          // Pin to the island's top row (plugins only).
+          Rectangle {
+            visible: !!(win.current && win.current.plugin)
+            readonly property bool on: { void(Settings.v.pinned); return !!win.current && Settings.isPinned(win.current.key) }
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.margins: 12
+            width: pinRow.implicitWidth + 20
+            height: 28
+            radius: 14
+            color: on ? Theme.accent : pinTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface
+            Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+            Row {
+              id: pinRow
+              anchors.centerIn: parent
+              spacing: 4
+              Icon { name: "push_pin"; filled: parent.parent.on; color: parent.parent.on ? Theme.surface : Theme.textDim; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+              Text { text: parent.parent.on ? "In top row" : "Pin to top row"; color: parent.parent.on ? Theme.surface : Theme.text; font.family: Theme.fontText; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+            }
+            MouseArea { id: pinTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Settings.setPinned(win.current.key, !parent.on) }
+          }
           Rectangle {
             id: bigIcon
             anchors.horizontalCenter: parent.horizontalCenter
@@ -260,7 +293,8 @@ PanelWindow {
           function load() {
             if (!active || !win.current) return
             key = win.current.key
-            const props = win.current.section ? { section: win.current.section } : {}
+            const props = win.current.section ? { section: win.current.section }
+                        : win.current.plugin && win.current.plugin.kind === "widget" ? { plugin: win.current.plugin } : {}
             setSource(win.current.url, props)
           }
           onLoaded: {

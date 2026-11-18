@@ -4,6 +4,7 @@ import Quickshell
 import qs.Ui
 import ".."
 import "../config/Widgets.js" as Widgets
+import "../config/Plugins.js" as Plugins
 
 // WidgetHost — runs your Omarchy bar widgets (webcam, mail, Dropbox, network,
 // DualSense, weather, updates, tray...) inside DankShell, the way the stock
@@ -34,6 +35,30 @@ Singleton {
     }
     return out
   }
+  // ── Every plugin, one list ────────────────────
+  // Your plugins with a full page (config/Plugins.js) first, then every bar
+  // widget. The Center window's Plugins tab lists all of them; the pinned
+  // ones (Settings.v.pinned) also sit in the island's top row.
+  //   kind "page":   opens its page (in the island when pinned, else Center)
+  //   kind "widget": the real widget, with its own dropdown
+  readonly property var catalog: {
+    const out = Plugins.active().map(p => ({ key: p.key, name: p.name, icon: p.icon, sub: p.sub || "", kind: "page" }))
+    for (const e of entries) {
+      if (!componentFor(e.id)) continue
+      out.push({ key: e.id, name: nameFor(e.id), icon: Widgets.ICONS[e.id] || "extension",
+                 sub: Widgets.ABOUT[e.id] || "", kind: "widget", entry: e })
+    }
+    return out
+  }
+  function item(key) { return catalog.find(c => c.key === key) || null }
+  function nameFor(id) {
+    if (Widgets.NAMES[id]) return Widgets.NAMES[id]
+    const reg = registry
+    const w = reg && reg.widgets ? reg.widgets[id] : null
+    const n = w && w.metadata && w.metadata.displayName ? String(w.metadata.displayName) : ""
+    return n || id.split(".").pop().replace(/[-_]/g, " ")
+  }
+
   function componentFor(id) {
     const reg = registry
     if (!reg || !reg.widgets) return null

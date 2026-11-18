@@ -42,6 +42,7 @@ Item {
     pressLater.restart()
     return true
   }
+  Connections { target: Popouts; function onSummon(id) { root.summonBarWidget(id) } }
   Timer {
     id: pressLater
     property var target: null

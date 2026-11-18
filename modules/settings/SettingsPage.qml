@@ -1,6 +1,5 @@
 import QtQuick
 import "../../"
-import "../../config/Plugins.js" as Plugins
 
 // SettingsPage — draws one section from config/SettingsList.js.
 // Every row writes straight to Settings, so the island changes as you drag.
@@ -63,21 +62,61 @@ Column {
   }
   Component {
     id: appsRows
+    // Pinned first, in top-row order (arrows move them), then the rest.
     Column {
+      id: apps
       width: parent.width
+      readonly property var pinned: Settings.v.pinned.map(k => WidgetHost.item(k)).filter(c => !!c)
+      readonly property var others: WidgetHost.catalog.filter(c => Settings.v.pinned.indexOf(c.key) < 0)
+
+      Text { text: "In the top row (left to right)"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase; bottomPadding: 4 }
+      Text { visible: apps.pinned.length === 0; text: "Nothing pinned yet."; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 12; bottomPadding: 6 }
       Repeater {
-        model: Plugins.active()
+        model: apps.pinned
+        Item {
+          required property var modelData
+          required property int index
+          width: apps.width
+          height: 46
+          Row {
+            id: arrows
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+            Repeater {
+              model: [{ icon: "keyboard_arrow_up", d: -1 }, { icon: "keyboard_arrow_down", d: 1 }]
+              Rectangle {
+                required property var modelData
+                readonly property bool can: modelData.d < 0 ? index > 0 : index < apps.pinned.length - 1
+                width: 24; height: 24; radius: 12
+                opacity: can ? 1 : 0.25
+                color: mv.containsMouse && can ? Theme.surface : "transparent"
+                Icon { anchors.centerIn: parent; name: modelData.icon; color: Theme.text }
+                MouseArea { id: mv; anchors.fill: parent; hoverEnabled: true; enabled: parent.can; cursorShape: Qt.PointingHandCursor; onClicked: Settings.movePinned(apps.pinned[index].key, modelData.d) }
+              }
+            }
+          }
+          SwitchRow {
+            anchors.left: arrows.right
+            anchors.leftMargin: 8
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            icon: modelData.icon; label: (index + 1) + ".  " + modelData.name
+            checked: true
+            onToggled: (v) => Settings.setPinned(modelData.key, v)
+          }
+        }
+      }
+      Rectangle { width: parent.width; height: 1; color: Theme.edge }
+      Text { text: "Plugins tab only"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase; topPadding: 10; bottomPadding: 4 }
+      Repeater {
+        model: apps.others
         SwitchRow {
           required property var modelData
           icon: modelData.icon; label: modelData.name
-          sub: checked ? "Button in the dashboard" : "Hidden (still in Settings window)"
+          sub: "Turn on to pin it at the end of the top row"
           implicitHeight: 46
-          checked: Settings.v.hiddenApps.indexOf(modelData.key) < 0
-          onToggled: (v) => {
-            const list = Settings.v.hiddenApps.filter(k => k !== modelData.key)
-            if (!v) list.push(modelData.key)
-            Settings.set("hiddenApps", list)
-          }
+          checked: false
+          onToggled: (v) => Settings.setPinned(modelData.key, v)
         }
       }
     }

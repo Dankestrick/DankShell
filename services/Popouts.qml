@@ -11,4 +11,7 @@ Singleton {
 
   function openCenter(key, screenName) { screen = screenName; center = key }
   function closeCenter() { center = "" }
+
+  // Open a bar widget's dropdown under the island (Bar.qml listens).
+  signal summon(string id)
 }

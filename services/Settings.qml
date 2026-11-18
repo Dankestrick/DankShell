@@ -25,8 +25,8 @@ Singleton {
     reduceMotion: false, move: 420, fade: 180, bounce: 0.7, openDelay: 350, closeDelay: 300,
     // Look
     pureBlack: true, outline: true, clockSize: 14, iconWeight: 700, iconFilled: false,
-    // Dashboard
-    hiddenApps: []
+    // Dashboard: plugins with a button in the island's top row
+    pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"]
   })
 
   function set(key, value) {
@@ -36,6 +36,22 @@ Singleton {
   }
   function isDefault(key) { return JSON.stringify(adapter[key]) === JSON.stringify(defaults[key]) }
   function reset(keys) { for (const k of keys) set(k, defaults[k]) }
+
+  // Pin a plugin to the island's top row, or take it off.
+  function isPinned(key) { return adapter.pinned.indexOf(key) >= 0 }
+  function setPinned(key, on) {
+    const list = adapter.pinned.filter(k => k !== key)
+    if (on) list.push(key)
+    set("pinned", list)
+  }
+  // Move a pinned plugin one spot (-1 = left/up, 1 = right/down).
+  function movePinned(key, d) {
+    const list = adapter.pinned.slice()
+    const i = list.indexOf(key), j = i + d
+    if (i < 0 || j < 0 || j >= list.length) return
+    list[i] = list[j]; list[j] = key
+    set("pinned", list)
+  }
 
   // Many slider moves in a row become one write.
   Timer { id: saveTimer; interval: 300; onTriggered: mkdir.running = true }
@@ -76,7 +92,7 @@ Singleton {
       property int iconWeight: 700
       property bool iconFilled: false
 
-      property var hiddenApps: []
+      property var pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"]
     }
   }
 }

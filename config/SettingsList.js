@@ -4,7 +4,7 @@
 // Each item changes one value in services/Settings.qml.
 //   slider: key, label, min, max, step, unit
 //   switch: key, label, sub, icon, kind: "switch"
-//   apps:   kind: "apps" (one switch per plugin: show it in the dashboard)
+//   apps:   kind: "apps" (one switch per plugin: pin it to the top row)
 
 var SECTIONS = [
   { key: "island", name: "Bar & Island", icon: "crop_16_9",
@@ -41,8 +41,8 @@ var SECTIONS = [
       { key: "clockSize", label: "Clock size", min: 11, max: 20, step: 1, unit: "px" },
       { key: "iconWeight", label: "Icon weight", min: 100, max: 700, step: 100, unit: "" }
     ] },
-  { key: "dashboard", name: "Dashboard", icon: "dashboard",
-    sub: "Which plugins get a button at the bottom of the dashboard.",
-    words: "plugins apps dock buttons hide show",
+  { key: "dashboard", name: "Top row", icon: "push_pin",
+    sub: "Top of the list sits farthest left in the island.",
+    words: "plugins apps pin pinned top row buttons hide show dashboard",
     items: [ { kind: "apps" } ] }
 ]
