@@ -41,6 +41,17 @@ Singleton {
   property bool nightLight: false
   function toggleNightLight() { nightLight = !nightLight; run(["omarchy", "toggle", "nightlight"], refresh) }
 
+  // ── Game mode (scripts/gamemode) ────────────
+  // Stay awake + silence + no animations + night light off + performance.
+  readonly property string gamemodeScript: Qt.resolvedUrl("../scripts/gamemode").toString().replace("file://", "")
+  property bool gameMode: false
+  property bool gameBusy: false
+  function toggleGameMode() {
+    gameBusy = true
+    gameMode = !gameMode
+    run(["bash", gamemodeScript, gameMode ? "on" : "off"], () => { gameBusy = false; refresh() })
+  }
+
   // ── Do Not Disturb ────────────────────────────
   property bool dnd: false
   function toggleDnd() { dnd = !dnd; run(["omarchy", "toggle", "notification", "silencing"], refresh) }
@@ -59,7 +70,8 @@ Singleton {
       "echo vpn=$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | grep -i '^proton' | grep -i wireguard | head -1 | cut -d: -f1);" +
       "echo night=$(omarchy toggle nightlight --status 2>/dev/null | jq -r .enabled);" +
       "echo dnd=$(omarchy-shell notifications isDnd 2>/dev/null);" +
-      "echo count=$(omarchy-shell notifications count 2>/dev/null)"]
+      "echo count=$(omarchy-shell notifications count 2>/dev/null);" +
+      "echo game=$(test -f \"$HOME/.local/state/dankshell/gamemode.saved\" && echo on || echo off)"]
     stdout: StdioCollector {
       onStreamFinished: {
         for (const line of text.split("\n")) {
@@ -69,6 +81,7 @@ Singleton {
           if (key === "vpn") { toggles.vpnName = val; toggles.vpn = val !== "" }
           else if (key === "night") toggles.nightLight = val === "true"
           else if (key === "dnd") toggles.dnd = val === "true" || val === "on" || val === "1"
+          else if (key === "game") { if (!toggles.gameBusy) toggles.gameMode = val === "on" }
           else if (key === "count") toggles.notifCount = parseInt(val) || 0
         }
       }

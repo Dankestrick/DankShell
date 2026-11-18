@@ -1,0 +1,68 @@
+#!/bin/bash
+# Game mode for DankShell. One switch for everything a game wants:
+#   - stays awake (no screensaver, lock or sleep)
+#   - notifications silenced
+#   - Hyprland animations, blur and shadows off (more frames for the game)
+#   - night light off (true colors)
+#   - CPU power profile on performance
+# Turning it off puts each one back the way it was before, so things you
+# already had on (like stay awake) stay on.
+#
+#   gamemode on | off | toggle | status
+set -u
+
+STATE_DIR="$HOME/.local/state/dankshell"
+SAVED="$STATE_DIR/gamemode.saved"
+
+is_on() { [[ -f $SAVED ]]; }
+
+stay_awake() { [[ -f $HOME/.local/state/omarchy/indicators/stay-awake ]] && echo 1 || echo 0; }
+dnd() { [[ $(omarchy-shell notifications isDnd 2>/dev/null) == on ]] && echo 1 || echo 0; }
+anims() { omarchy-hyprland-toggle-enabled no-animations && echo 0 || echo 1; }
+night() { [[ $(omarchy toggle nightlight --status 2>/dev/null | jq -r .enabled) == true ]] && echo 1 || echo 0; }
+profile() { command -v powerprofilesctl >/dev/null && powerprofilesctl get 2>/dev/null || echo ""; }
+
+turn_on() {
+  is_on && return 0
+  mkdir -p "$STATE_DIR"
+  # Remember how things were.
+  {
+    echo "awake=$(stay_awake)"
+    echo "dnd=$(dnd)"
+    echo "anims=$(anims)"
+    echo "night=$(night)"
+    echo "profile=$(profile)"
+  } >"$SAVED"
+  source "$SAVED"
+
+  omarchy-notification-send -g 󰊴 "Game mode on" "Awake, quiet, no animations" -t 2000 2>/dev/null
+  [[ $awake == 0 ]] && omarchy toggle idle stay-awake >/dev/null
+  [[ $dnd == 0 ]] && omarchy toggle notification silencing >/dev/null
+  [[ $anims == 1 ]] && omarchy-hyprland-toggle no-animations on >/dev/null
+  [[ $night == 1 ]] && omarchy toggle nightlight >/dev/null
+  [[ -n $profile && $profile != performance ]] && powerprofilesctl set performance 2>/dev/null
+  omarchy-shell -q omarchy.indicators refresh 2>/dev/null
+  return 0
+}
+
+turn_off() {
+  is_on || return 0
+  source "$SAVED"
+  [[ $awake == 0 ]] && omarchy toggle idle allow-idle >/dev/null
+  [[ $anims == 1 ]] && omarchy-hyprland-toggle no-animations off >/dev/null
+  [[ $night == 1 && $(night) == 0 ]] && omarchy toggle nightlight >/dev/null
+  [[ -n $profile && $(profile) != "$profile" ]] && powerprofilesctl set "$profile" 2>/dev/null
+  [[ $dnd == 0 && $(dnd) == 1 ]] && omarchy toggle notification silencing >/dev/null
+  rm -f "$SAVED"
+  omarchy-shell -q omarchy.indicators refresh 2>/dev/null
+  omarchy-notification-send -g 󰊴 "Game mode off" -t 2000 2>/dev/null
+  return 0
+}
+
+case "${1:-toggle}" in
+  on) turn_on ;;
+  off) turn_off ;;
+  toggle) if is_on; then turn_off; else turn_on; fi ;;
+  status) is_on && echo on || echo off ;;
+  *) echo "Usage: gamemode on|off|toggle|status" >&2; exit 1 ;;
+esac

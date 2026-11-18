@@ -59,6 +59,13 @@ Item {
     Island { hidden: root.barHidden }
   }
 
+  // The Center window (plugins + settings), one per monitor; only the one
+  // on the monitor you opened it from shows.
+  Variants {
+    model: Quickshell.screens
+    Center { }
+  }
+
   // The island on the monitor you're using.
   function focusedIsland() {
     const name = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
@@ -74,6 +81,13 @@ Item {
     function open(): void { const i = root.focusedIsland(); if (i) i.open() }
     function page(name: string): void { const i = root.focusedIsland(); if (i) i.showPage(name) }
     function themes(): void { const i = root.focusedIsland(); if (i) { if (i.isThemes) i.state = "closed"; else i.showThemes() } }
-    function close(): void { for (const i of islands.instances) i.state = "closed" }
+    function walls(): void { const i = root.focusedIsland(); if (i) { if (i.isWalls) i.state = "closed"; else i.showWalls() } }
+    function center(name: string): void {
+      if (Popouts.center !== "" && (name === "" || Popouts.center === name)) { Popouts.closeCenter(); return }
+      const i = root.focusedIsland(); if (i) i.showPage(name || "island")
+    }
+    function settings(): void { center("island") }
+    function gamemode(): void { Toggles.toggleGameMode() }
+    function close(): void { for (const i of islands.instances) i.state = "closed"; Popouts.closeCenter() }
   }
 }

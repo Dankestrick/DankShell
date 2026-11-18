@@ -10,15 +10,16 @@
 // name:  the tab label
 // icon:  Material Symbols name for the tab
 // model: for a plugin with no service, one of its own files run as one (optional)
+// sub:   one line about it, under its name in the Center window
 // off:   true = leave it on Omarchy and skip its page (optional)
 
 var LIST = [
-  { id: "io.github.dankestrick.omapandora",  key: "pandora",   name: "Pandora",   icon: "radio" },
-  { id: "io.github.dankestrick.omakraken",   key: "kraken",    name: "Kraken",    icon: "headphones" },
-  { id: "io.github.dankestrick.omagravastar", key: "gravastar", name: "Gravastar", icon: "mouse" },
-  { id: "io.github.dankestrick.omaiphone",   key: "iphone",    name: "iPhone",    icon: "smartphone" },
-  { id: "io.github.dankestrick.omajournal",  key: "journal",   name: "Journal",   icon: "edit_note" },
-  { id: "io.github.dankestrick.omagrokbots", key: "grokbots",  name: "Grok Bots", icon: "smart_toy", model: "Inbox.qml" }
+  { id: "io.github.dankestrick.omapandora",  key: "pandora",   name: "Pandora",   icon: "radio", sub: "Your stations, what's playing, thumbs and skips." },
+  { id: "io.github.dankestrick.omakraken",   key: "kraken",    name: "Kraken",    icon: "headphones", sub: "Razer Kraken V3 Pro: battery, lights, sidetone, mic." },
+  { id: "io.github.dankestrick.omagravastar", key: "gravastar", name: "Gravastar", icon: "mouse", sub: "Gravastar mouse: battery, DPI and lights." },
+  { id: "io.github.dankestrick.omaiphone",   key: "iphone",    name: "iPhone",    icon: "smartphone", sub: "Your iPhone: battery, files and notifications." },
+  { id: "io.github.dankestrick.omajournal",  key: "journal",   name: "Journal",   icon: "edit_note", sub: "Today's note in the Dank Vault." },
+  { id: "io.github.dankestrick.omagrokbots", key: "grokbots",  name: "Grok Bots", icon: "smart_toy", model: "Inbox.qml", sub: "Messages from your Grok bots." }
 ]
 
 function active() { return LIST.filter(function(p) { return !p.off }) }

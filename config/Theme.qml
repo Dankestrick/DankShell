@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import ".."
 import qs.Commons
 
 // Theme — colors and fonts. Colors follow your Omarchy theme live.
@@ -9,8 +10,8 @@ import qs.Commons
 //   3. accent: the ONE bright color, only for "you are here"
 QtObject {
   // ── 1. Surfaces ───────────────────────────────
-  property color surface: "#000000"                       // the island itself (his is pure black)
-  property color edge: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.10) // faint outline so the black pill shows on dark windows
+  property color surface: Settings.v.pureBlack ? "#000000" : Color.background  // the island itself (his is pure black)
+  property color edge: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, Settings.v.outline ? 0.10 : 0) // faint outline so the black pill shows on dark windows
   property color surfaceRaised: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.07) // cards inside the island, one quiet step up from black
 
   // ── 2. Text ───────────────────────────────────
@@ -26,7 +27,7 @@ QtObject {
   // installed, this follows your Omarchy font.
   property string fontDisplay: Style.font.family  // the clock and headings
   property string fontText: Style.font.family     // everything else
-  property int clockSize: 14
+  property int clockSize: Settings.v.clockSize
   property int clockWeight: Font.DemiBold
 
   // ── Icons ─────────────────────────────────────
@@ -37,5 +38,5 @@ QtObject {
   // The font's four dials (saneAspect's settings):
   //   FILL 0 = outline, 1 = solid · wght 100 thin to 700 bold
   //   GRAD -25 to 200 emphasis   · opsz = the size it's drawn at
-  property var iconAxes: ({ "FILL": 0, "wght": 700, "GRAD": 0, "opsz": iconSize })
+  property var iconAxes: ({ "FILL": Settings.v.iconFilled ? 1 : 0, "wght": Settings.v.iconWeight, "GRAD": 0, "opsz": iconSize })
 }

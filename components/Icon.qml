@@ -15,6 +15,6 @@ Text {
   color: Theme.text
   font.family: Theme.iconFont
   font.pixelSize: Theme.iconSize
-  font.variableAxes: ({ "FILL": filled ? 1 : 0, "wght": Theme.iconAxes.wght, "GRAD": Theme.iconAxes.GRAD, "opsz": Theme.iconSize })
+  font.variableAxes: ({ "FILL": filled || Theme.iconAxes.FILL ? 1 : 0, "wght": Theme.iconAxes.wght, "GRAD": Theme.iconAxes.GRAD, "opsz": Theme.iconSize })
   transform: Translate { x: icon.nudge }
 }

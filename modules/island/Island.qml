@@ -25,11 +25,12 @@ PanelWindow {
   property string state: "closed"
   readonly property bool isOpen: state === "open"
   readonly property bool isThemes: state === "themes"
-  readonly property bool held: isOpen || isThemes   // opened on purpose: hover doesn't close it
+  readonly property bool isWalls: state === "walls"
+  readonly property bool held: isOpen || isThemes || isWalls   // opened on purpose: hover doesn't close it
 
   anchors { top: true; left: true; right: true }
   color: "transparent"
-  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight, themeSwitcher.contentHeight) + 24  // room to grow into
+  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight) + 24  // room to grow into
   exclusiveZone: hidden ? 0 : Sizes.reserved
   WlrLayershell.namespace: "dankshell-island"
   WlrLayershell.layer: WlrLayer.Top
@@ -41,10 +42,12 @@ PanelWindow {
   // Toggle states only refresh while a dashboard is open.
   onIsOpenChanged: { Toggles.watching = isOpen; if (!isOpen) dashboard.reset() }
 
-  function showPage(key) { open(); dashboard.page = key }
+  // A plugin page or a settings section pops up in the Center window.
+  function showPage(key) { state = "closed"; Popouts.openCenter(key, modelData.name) }
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
   function showThemes() { openTimer.stop(); closeTimer.stop(); state = "themes"; themeSwitcher.reset() }
+  function showWalls() { openTimer.stop(); closeTimer.stop(); state = "walls"; wallSwitcher.reset() }
 
   // A click anywhere outside the island closes the dashboard.
   HyprlandFocusGrab {
@@ -82,12 +85,14 @@ PanelWindow {
 
     readonly property int closedWidth: Math.max(Sizes.collapsedWidth, clock.closedWidth + Sizes.barHeight)
 
-    width: island.isThemes ? Sizes.themesWidth
+    width: island.isWalls ? Sizes.wallsWidth
+         : island.isThemes ? Sizes.themesWidth
          : island.isOpen ? Sizes.dashWidth
          : island.state === "hover" ? Sizes.hoverWidth
          : island.state === "bubble" ? closedWidth + Sizes.hoverLift * 2
          : closedWidth
-    height: island.isThemes ? themeSwitcher.contentHeight
+    height: island.isWalls ? wallSwitcher.contentHeight
+          : island.isThemes ? themeSwitcher.contentHeight
           : island.isOpen ? Math.max(Sizes.dashHeight, dashboard.contentHeight)
           : island.state === "hover" ? Sizes.hoverHeight
           : island.state === "bubble" ? Sizes.barHeight + Sizes.hoverLift
@@ -126,6 +131,8 @@ PanelWindow {
       id: dashboard
       onCloseRequested: island.state = "closed"
       onThemesRequested: island.showThemes()
+      onWallsRequested: island.showWalls()
+      onPageRequested: (key) => island.showPage(key)
       width: Sizes.dashWidth
       height: Math.max(Sizes.dashHeight, contentHeight)
       anchors.horizontalCenter: parent.horizontalCenter
@@ -147,6 +154,18 @@ PanelWindow {
       Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
     }
 
+    WallpaperSwitcher {
+      id: wallSwitcher
+      width: Sizes.wallsWidth
+      height: contentHeight
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: parent.top
+      opacity: island.isWalls ? 1 : 0
+      visible: opacity > 0
+      onCloseRequested: island.state = "closed"
+      Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
+    }
+
     // ── The one clock ───────────────────────────
     Text {
       id: clock
@@ -155,7 +174,7 @@ PanelWindow {
 
       text: Time.hhmm
       color: Theme.text
-      opacity: island.isThemes ? 0 : 1
+      opacity: island.isThemes || island.isWalls ? 0 : 1
       Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
       font.family: Theme.fontDisplay
       font.weight: big ? Font.Bold : Theme.clockWeight

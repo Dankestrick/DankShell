@@ -40,3 +40,10 @@ Back to the stock bar: set it to `"omarchy.bar"`.
 ## Credits
 
 Design numbers from saneAspect's videos. Island ideas from ZenoShell (MIT).
+
+## Newer pieces
+
+- **Center window** (`modules/center/`): plugin pages, Sound & Bluetooth and Settings pop up in the middle of the screen. Open from the dashboard's bottom buttons or the gear, or `qs ipc -p /usr/share/omarchy/shell call dankshell center <page>`.
+- **Settings** (`modules/settings/`, `config/SettingsList.js`, `services/Settings.qml`): sliders that reshape the island live; saved in `~/.config/dankshell/settings.json`.
+- **Wallpapers** (`modules/island/WallpaperSwitcher.qml`): the island turns into a carousel. `... call dankshell walls`.
+- **Game mode** (`scripts/gamemode on|off|toggle|status`): stay awake, notifications silenced, animations off, night light off, performance power profile; off puts each back. Tile on Home, or `... call dankshell gamemode`.

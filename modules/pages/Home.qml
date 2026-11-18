@@ -32,11 +32,12 @@ Column {
     }
     ToggleTile {
       width: parent.tileWidth
-      icon: "nightlight"
-      title: "Night Light"
-      on: Toggles.nightLight
-      status: Toggles.nightLight ? "On" : "Off"
-      onClicked: Toggles.toggleNightLight()
+      icon: "sports_esports"
+      title: "Game Mode"
+      on: Toggles.gameMode
+      busy: Toggles.gameBusy
+      status: Toggles.gameMode ? "Awake · quiet · fast" : "Off"
+      onClicked: Toggles.toggleGameMode()
     }
     ToggleTile {
       width: parent.tileWidth
