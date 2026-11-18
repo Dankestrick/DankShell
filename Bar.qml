@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import Quickshell.Hyprland
 import qs.Commons
 import "."
 
@@ -49,7 +50,24 @@ Item {
 
   // One island per monitor.
   Variants {
+    id: islands
     model: Quickshell.screens
     Island { hidden: root.barHidden }
+  }
+
+  // The island on the monitor you're using.
+  function focusedIsland() {
+    const name = Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : ""
+    for (const i of islands.instances) if (i.modelData.name === name) return i
+    return islands.instances.length ? islands.instances[0] : null
+  }
+
+  // Commands for keybinds and scripts:
+  //   qs ipc -p /usr/share/omarchy/shell call dankshell toggle
+  IpcHandler {
+    target: "dankshell"
+    function toggle(): void { const i = root.focusedIsland(); if (i) { if (i.isOpen) i.state = "closed"; else i.open() } }
+    function open(): void { const i = root.focusedIsland(); if (i) i.open() }
+    function close(): void { for (const i of islands.instances) i.state = "closed" }
   }
 }

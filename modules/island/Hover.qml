@@ -1,36 +1,23 @@
 import QtQuick
-import QtQuick.Layouts
 import "../../"
 
 // Hover — the medium card the pill grows into when you rest the mouse on it.
-// Left: big clock + date. Right: what's playing. Bottom: workspace dots.
+// Left: big clock (the shared clock from Island.qml slides here) + date.
+// Right: what's playing. Bottom: workspace dots.
 // (saneAspect: hover shows a little, the big dashboard waits for a click.)
 Item {
   id: hoverCard
 
   property string screenName: ""
 
-  // ── Left: clock + date ────────────────────────
-  Column {
-    anchors.left: parent.left
-    anchors.leftMargin: 20
-    anchors.top: parent.top
-    anchors.topMargin: 14
-    spacing: 0
-
-    Text {
-      text: Time.hhmm
-      color: Theme.text
-      font.family: Theme.fontDisplay
-      font.pixelSize: 26
-      font.weight: Font.Bold
-    }
-    Text {
-      text: Time.dateLong
-      color: Theme.textDim
-      font.family: Theme.fontText
-      font.pixelSize: 11
-    }
+  // ── Left: date under the clock ────────────────
+  Text {
+    x: 20
+    y: 50
+    text: Time.dateLong
+    color: Theme.textDim
+    font.family: Theme.fontText
+    font.pixelSize: 11
   }
 
   // ── Right: now playing ────────────────────────

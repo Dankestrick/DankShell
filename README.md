@@ -9,7 +9,7 @@ A dynamic island shell for Omarchy. One pill at the top of each screen that grow
 | `config/` | `Sizes.qml`, `Motion.qml`, `Theme.qml` | change a size, a speed, a color, a font |
 | `services/` | where data comes from (time, music, workspaces...) | change what the island knows |
 | `components/` | small pieces used everywhere (`Pill`, `Icon`) | change how a basic piece looks |
-| `modules/island/` | the island and its states (`Closed`, later `Hover`, `Dashboard`) | change what the island shows |
+| `modules/island/` | the island and its states (`Hover`, `Dashboard`; the clock lives in `Island.qml`) | change what the island shows |
 | `modules/pages/` | one file per dashboard page | change one page |
 | `modules/settings/` | one file per settings section | change a settings screen |
 
