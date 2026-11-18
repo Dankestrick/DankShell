@@ -48,6 +48,10 @@ Item {
     onLoadFailed: root.barHidden = false
   }
 
+  // Start the plugin host right away so plugins run even before the
+  // dashboard is first opened.
+  readonly property var pluginHost: PluginHost
+
   // One island per monitor.
   Variants {
     id: islands

@@ -15,6 +15,17 @@ A dynamic island shell for Omarchy. One pill at the top of each screen that grow
 
 `Bar.qml` is only the doorway Omarchy opens. `qmldir` lists every piece so any file can use any other.
 
+## On and off
+
+```sh
+scripts/dankshell on       # DankShell is the bar and runs your plugins
+scripts/dankshell off      # stock Omarchy bar, plugins back with Omarchy
+scripts/dankshell status
+scripts/dankshell install  # copy the repo into Omarchy's plugin folder
+```
+
+Your plugins with a page are listed in `config/Plugins.js`.
+
 ## Try it
 
 ```sh

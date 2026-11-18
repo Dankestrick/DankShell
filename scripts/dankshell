@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# dankshell — switch between DankShell and the stock Omarchy bar.
+#
+#   dankshell on       DankShell is the bar, and it runs your plugins
+#                      (they go on shell.json's disabledPlugins so Omarchy's
+#                      copy stops; their settings and bar spots stay put).
+#   dankshell off      Stock Omarchy bar, plugins handed back to Omarchy.
+#   dankshell status   Which bar is on and who runs each plugin.
+#   dankshell install  Copy the repo into Omarchy's plugin folder (dev copy).
+#
+# Only `bar.id` and `disabledPlugins` in ~/.config/omarchy/shell.json change.
+# Plugins that were already disabled before `on` are remembered and left off.
+set -Eeuo pipefail
+
+repo_dir="$(cd -- "$(dirname -- "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+plugin_id="io.github.dankestrick.dankshell"
+plugin_dir="$HOME/.config/omarchy/plugins/$plugin_id"
+shell_json="$HOME/.config/omarchy/shell.json"
+state_dir="$HOME/.local/state/dankshell"
+state_file="$state_dir/owned.json"
+
+die() { echo "dankshell: $*" >&2; exit 1; }
+command -v jq >/dev/null || die "jq is required"
+[[ -f $shell_json ]] || die "no $shell_json"
+
+# Plugin ids from config/Plugins.js, skipping `off: true` ones.
+mapfile -t ids < <(grep -E 'id: "[^"]+"' "$repo_dir/config/Plugins.js" | grep -v 'off: true' | grep -oE 'id: "[^"]+"' | sed -E 's/id: "(.*)"/\1/')
+ids_json="$(printf '%s\n' "${ids[@]}" | jq -R . | jq -s 'map(select(. != ""))')"
+
+write_json() {  # jq filter + args: rewrite shell.json safely
+  local tmp; tmp="$(mktemp "$shell_json.XXXXXX")"
+  if jq "$@" "$shell_json" >"$tmp" && jq -e . "$tmp" >/dev/null; then
+    chmod --reference="$shell_json" "$tmp" 2>/dev/null || true
+    mv -f "$tmp" "$shell_json"
+  else
+    rm -f "$tmp"; die "could not update $shell_json"
+  fi
+}
+
+restart_shell() { omarchy restart shell >/dev/null 2>&1 || true; }
+
+case "${1:-status}" in
+  install)
+    rsync -a --delete --exclude .git "$repo_dir/" "$plugin_dir/"
+    echo "Copied to $plugin_dir. Run: omarchy restart shell"
+    ;;
+  on)
+    mkdir -p "$state_dir"
+    if [[ ! -f $state_file ]]; then
+      jq --argjson ids "$ids_json" '{ alreadyDisabled: [ (.disabledPlugins // [])[] | select(. as $i | $ids | index($i)) ], barBefore: (.bar.id // "omarchy.bar") }' \
+        "$shell_json" >"$state_file"
+    fi
+    write_json --arg id "$plugin_id" --argjson ids "$ids_json" \
+      '.bar.id = $id | .disabledPlugins = (((.disabledPlugins // []) + $ids) | unique)'
+    restart_shell
+    echo "DankShell on. It runs: ${ids[*]:-nothing yet}"
+    ;;
+  off)
+    keep='[]'
+    [[ -f $state_file ]] && keep="$(jq -c '.alreadyDisabled // []' "$state_file")"
+    # Hand back every plugin DankShell could own, not just today's list.
+    mapfile -t all < <(grep -oE 'id: "[^"]+"' "$repo_dir/config/Plugins.js" | sed -E 's/id: "(.*)"/\1/')
+    all_json="$(printf '%s\n' "${all[@]}" | jq -R . | jq -s 'map(select(. != ""))')"
+    write_json --argjson ids "$all_json" --argjson keep "$keep" \
+      '.bar.id = "omarchy.bar"
+       | .disabledPlugins = [ (.disabledPlugins // [])[] | select((. as $i | $ids | index($i) | not) or (. as $i | $keep | index($i))) ]
+       | if (.disabledPlugins | length) == 0 then del(.disabledPlugins) else . end'
+    rm -f "$state_file"
+    restart_shell
+    echo "Stock Omarchy bar on. Plugins back with Omarchy."
+    ;;
+  status)
+    jq -r '"bar: " + (.bar.id // "omarchy.bar")' "$shell_json"
+    jq -r --argjson ids "$ids_json" '$ids[] as $i | "  \($i): " + (if ((.disabledPlugins // []) | index($i)) then "DankShell" else "Omarchy" end)' "$shell_json"
+    ;;
+  *) die "usage: dankshell on|off|status|install" ;;
+esac

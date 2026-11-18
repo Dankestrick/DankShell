@@ -119,6 +119,7 @@ PanelWindow {
 
     Dashboard {
       id: dashboard
+      onCloseRequested: island.state = "closed"
       width: Sizes.dashWidth
       height: Math.max(Sizes.dashHeight, contentHeight)
       anchors.horizontalCenter: parent.horizontalCenter
