@@ -23,6 +23,7 @@ Item {
                                        file: p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml" })))
 
   signal closeRequested()
+  signal themesRequested()
 
   function reset() { page = "home" }
 
@@ -32,6 +33,15 @@ Item {
     anchors.rightMargin: Sizes.dashPadding
     y: 14
     spacing: 4
+
+    // Theme switcher (not a page: the island turns into it).
+    Rectangle {
+      width: 30; height: 28; radius: 14
+      color: palTap.containsMouse ? Qt.rgba(1, 1, 1, 0.04) : "transparent"
+      Icon { anchors.centerIn: parent; name: "palette"; color: Theme.textDim }
+      MouseArea { id: palTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: dash.themesRequested() }
+    }
+    Rectangle { width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Theme.edge }
 
     Repeater {
       model: dash.pages

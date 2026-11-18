@@ -24,14 +24,16 @@ PanelWindow {
   property bool hidden: false        // Omarchy's "hide bar" toggle
   property string state: "closed"
   readonly property bool isOpen: state === "open"
+  readonly property bool isThemes: state === "themes"
+  readonly property bool held: isOpen || isThemes   // opened on purpose: hover doesn't close it
 
   anchors { top: true; left: true; right: true }
   color: "transparent"
-  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight) + 24  // room to grow into
+  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight, themeSwitcher.contentHeight) + 24  // room to grow into
   exclusiveZone: hidden ? 0 : Sizes.reserved
   WlrLayershell.namespace: "dankshell-island"
   WlrLayershell.layer: WlrLayer.Top
-  WlrLayershell.keyboardFocus: isOpen ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
+  WlrLayershell.keyboardFocus: held ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
   // Only the pill takes clicks; the empty strip around it lets them through.
   mask: Region { item: pill }
@@ -42,22 +44,23 @@ PanelWindow {
   function showPage(key) { open(); dashboard.page = key }
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
+  function showThemes() { openTimer.stop(); closeTimer.stop(); state = "themes"; themeSwitcher.reset() }
 
   // A click anywhere outside the island closes the dashboard.
   HyprlandFocusGrab {
     windows: [island]
-    active: island.isOpen
-    onCleared: if (island.isOpen) island.state = "closed"
+    active: island.held
+    onCleared: if (island.held) island.state = "closed"
   }
 
   // ── Hover timing ──────────────────────────────
   Timer { id: openTimer; interval: Motion.openDelay; onTriggered: if (hover.hovered && island.state === "bubble") island.state = "hover" }
-  Timer { id: closeTimer; interval: Motion.closeDelay; onTriggered: if (!hover.hovered && !island.isOpen) island.state = "closed" }
+  Timer { id: closeTimer; interval: Motion.closeDelay; onTriggered: if (!hover.hovered && !island.held) island.state = "closed" }
 
   Connections {
     target: hover
     function onHoveredChanged() {
-      if (island.isOpen) return
+      if (island.held) return
       if (hover.hovered) {
         closeTimer.stop()
         if (island.state === "closed") island.state = "bubble"
@@ -79,15 +82,17 @@ PanelWindow {
 
     readonly property int closedWidth: Math.max(Sizes.collapsedWidth, clock.closedWidth + Sizes.barHeight)
 
-    width: island.isOpen ? Sizes.dashWidth
+    width: island.isThemes ? Sizes.themesWidth
+         : island.isOpen ? Sizes.dashWidth
          : island.state === "hover" ? Sizes.hoverWidth
          : island.state === "bubble" ? closedWidth + Sizes.hoverLift * 2
          : closedWidth
-    height: island.isOpen ? Math.max(Sizes.dashHeight, dashboard.contentHeight)
+    height: island.isThemes ? themeSwitcher.contentHeight
+          : island.isOpen ? Math.max(Sizes.dashHeight, dashboard.contentHeight)
           : island.state === "hover" ? Sizes.hoverHeight
           : island.state === "bubble" ? Sizes.barHeight + Sizes.hoverLift
           : Sizes.barHeight
-    radius: island.isOpen ? Sizes.radiusExpanded
+    radius: island.held ? Sizes.radiusExpanded
           : island.state === "hover" ? Sizes.radiusHover
           : height / 2
 
@@ -120,12 +125,25 @@ PanelWindow {
     Dashboard {
       id: dashboard
       onCloseRequested: island.state = "closed"
+      onThemesRequested: island.showThemes()
       width: Sizes.dashWidth
       height: Math.max(Sizes.dashHeight, contentHeight)
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.top: parent.top
       opacity: island.isOpen ? 1 : 0
       visible: opacity > 0
+      Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
+    }
+
+    ThemeSwitcher {
+      id: themeSwitcher
+      width: Sizes.themesWidth
+      height: contentHeight
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: parent.top
+      opacity: island.isThemes ? 1 : 0
+      visible: opacity > 0
+      onCloseRequested: island.state = "closed"
       Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
     }
 
@@ -137,6 +155,8 @@ PanelWindow {
 
       text: Time.hhmm
       color: Theme.text
+      opacity: island.isThemes ? 0 : 1
+      Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
       font.family: Theme.fontDisplay
       font.weight: big ? Font.Bold : Theme.clockWeight
       font.pixelSize: island.isOpen ? 24 : island.state === "hover" ? 28 : Theme.clockSize

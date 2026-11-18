@@ -12,6 +12,7 @@ singleton Media 1.0 services/Media.qml
 singleton Audio 1.0 services/Audio.qml
 singleton Toggles 1.0 services/Toggles.qml
 singleton PluginHost 1.0 services/PluginHost.qml
+singleton Themes 1.0 services/Themes.qml
 
 # components/ — small reusable pieces
 Pill 1.0 components/Pill.qml
@@ -34,6 +35,7 @@ Field 1.0 components/Field.qml
 Island 1.0 modules/island/Island.qml
 Hover 1.0 modules/island/Hover.qml
 Dashboard 1.0 modules/island/Dashboard.qml
+ThemeSwitcher 1.0 modules/island/ThemeSwitcher.qml
 
 # modules/pages/ — one file per dashboard page
 Home 1.0 modules/pages/Home.qml

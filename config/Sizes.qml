@@ -27,6 +27,9 @@ QtObject {
   property int dashPadding: 16      // space between the dashboard's edge and its cards
   property int cardRadius: 18       // corner rounding of cards inside the dashboard
 
+  // ── Theme switcher ────────────────────────────
+  property int themesWidth: 400     // width of the theme switcher
+
   // Tallest the island can get (the window reserves this much room to draw in).
   readonly property int expandedHeight: Math.max(hoverHeight, dashHeight)
 
