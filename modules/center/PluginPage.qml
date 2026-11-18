@@ -18,9 +18,14 @@ Column {
   // Has a dropdown (open()); otherwise its icon is shown here to click.
   readonly property bool hasDropdown: isWidget && WidgetHost.canOpen(live.widget)
 
+  // While its dropdown is open, the dropdown takes the whole right side.
+  readonly property bool dropOpen: hasDropdown && WidgetHost.popoutOpen
+
   // ── About ─────────────────────────────────────
   Card {
     width: parent.width
+    opacity: page.dropOpen ? 0 : 1
+    Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
     Row {
       spacing: 8
       Rectangle {
@@ -127,7 +132,7 @@ Column {
   }
   Binding {
     target: page.card; property: "y"; when: !!page.card && WidgetHost.popoutOpen; restoreMode: Binding.RestoreNone
-    value: Math.round(Math.max(page.winTop, Math.min(page.spot.y, page.winBottom - (page.card ? page.card.height : 0))))
+    value: page.winTop
   }
 
   component PillButton: Rectangle {

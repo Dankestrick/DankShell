@@ -19,6 +19,7 @@ singleton Wallpapers 1.0 services/Wallpapers.qml
 singleton WidgetHost 1.0 services/WidgetHost.qml
 singleton Notifications 1.0 services/Notifications.qml
 singleton Installed 1.0 services/Installed.qml
+singleton Status 1.0 services/Status.qml
 
 # components/ — small reusable pieces
 Pill 1.0 components/Pill.qml

@@ -12,7 +12,9 @@ Rectangle {
   property string status: ""
   property bool on: false
   property bool busy: false
+  property bool hasMore: false   // a › on the right that opens its page
   signal clicked()
+  signal more()
 
   implicitHeight: 54
   radius: Sizes.cardRadius
@@ -40,7 +42,7 @@ Rectangle {
     anchors.left: chip.right
     anchors.leftMargin: 10
     anchors.right: parent.right
-    anchors.rightMargin: 10
+    anchors.rightMargin: tile.hasMore ? 38 : 10
     anchors.verticalCenter: parent.verticalCenter
     Text {
       width: parent.width
@@ -67,5 +69,16 @@ Rectangle {
     hoverEnabled: true
     cursorShape: Qt.PointingHandCursor
     onClicked: if (!tile.busy) tile.clicked()
+  }
+
+  Rectangle {
+    visible: tile.hasMore
+    anchors.right: parent.right
+    anchors.rightMargin: 6
+    anchors.verticalCenter: parent.verticalCenter
+    width: 28; height: 28; radius: 14
+    color: moreTap.containsMouse ? Theme.surface : "transparent"
+    Icon { anchors.centerIn: parent; name: "chevron_right"; color: moreTap.containsMouse ? Theme.text : Theme.textDim }
+    MouseArea { id: moreTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: tile.more() }
   }
 }

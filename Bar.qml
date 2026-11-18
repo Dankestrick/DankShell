@@ -106,7 +106,8 @@ Item {
     function themes(): void { const i = root.focusedIsland(); if (i) { if (i.isThemes) i.state = "closed"; else i.showThemes() } }
     function walls(): void { const i = root.focusedIsland(); if (i) { if (i.isWalls) i.state = "closed"; else i.showWalls() } }
     function center(name: string): void {
-      if (Popouts.center !== "" && (name === "" || Popouts.center === name)) { Popouts.closeCenter(); return }
+      // The same key again closes it.
+      if (Popouts.center !== "" && (name === "" || Popouts.center === name || name === "@" + Popouts.mode)) { Popouts.closeCenter(); return }
       const i = root.focusedIsland(); if (i) { i.state = "closed"; Popouts.openCenter(name || "@settings", i.modelData.name) }
     }
     function settings(): void { center("@settings") }

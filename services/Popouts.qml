@@ -8,6 +8,7 @@ import Quickshell
 Singleton {
   property string center: ""   // page shown in the Center window; "" = closed
   property string screen: ""   // monitor it's on
+  property string mode: ""     // plugins, settings or device (Center sets it)
 
   function openCenter(key, screenName) { screen = screenName; center = key }
   function closeCenter() { center = "" }

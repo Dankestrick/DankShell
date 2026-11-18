@@ -45,7 +45,9 @@ PanelWindow {
   //   settings: the Settings sections
   //   device:   Notifications, Sound & Bluetooth
   readonly property var allPages: {
-    const out = []
+    const out = [{ key: "allplugins", mode: "plugins", group: "Plugins", name: "All plugins", icon: "apps",
+                   sub: "Everything you have installed. Click one to use it.", words: "all grid overview",
+                   url: Qt.resolvedUrl("PluginGrid.qml") }]
     for (const p of Installed.items)
       out.push({ key: p.key, mode: "plugins", group: p.group, name: p.name, icon: p.icon, sub: p.sub,
                  words: p.id + " " + p.description, plugin: p, pinnable: !!WidgetHost.item(p.key),
@@ -54,6 +56,9 @@ PanelWindow {
     out.push({ key: "notifications", mode: "device", group: "Device", name: "Notifications", icon: "notifications",
                sub: "Click one to read it all, × to clear it.",
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
+    out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
+               sub: "Game Mode, your controller, and your Steam games.",
+               url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })
     out.push({ key: "sound", mode: "device", group: "Device", name: "Sound & Bluetooth", icon: "tune",
                sub: "Where sound goes and which Bluetooth devices are on.",
                url: Qt.resolvedUrl("../pages/System.qml"), words: "audio output speaker headset bluetooth" })
@@ -72,7 +77,7 @@ PanelWindow {
   onAllPagesChanged: resolveStart()   // the plugin list can arrive a moment later
   readonly property var current: allPages.find(p => p.key === Popouts.center) || null
   property string mode: "plugins"
-  onCurrentChanged: if (current) mode = current.mode
+  onCurrentChanged: if (current) { mode = current.mode; if (wanted) Popouts.mode = mode }
   readonly property var pages: allPages.filter(p => p.mode === mode)
   readonly property var shown: {
     const q = search.text.trim().toLowerCase()
@@ -209,11 +214,25 @@ PanelWindow {
                   anchors.left: dot.right
                   anchors.leftMargin: 10
                   anchors.verticalCenter: parent.verticalCenter
+                  width: parent.width - 100
+                  elide: Text.ElideRight
                   text: modelData.name
                   color: parent.here ? Theme.text : Theme.textDim
                   font.family: Theme.fontText
                   font.pixelSize: 12
                   font.weight: parent.here ? Font.DemiBold : Font.Normal
+                }
+                // Live status (battery, playing, unread...) on the right.
+                Text {
+                  readonly property var st: modelData.plugin ? Status.of(modelData.key) : ({ text: "", alert: false })
+                  anchors.right: parent.right
+                  anchors.rightMargin: 10
+                  anchors.verticalCenter: parent.verticalCenter
+                  visible: text !== ""
+                  text: st.text
+                  color: st.alert ? Theme.accent : Theme.textDim
+                  font.family: Theme.fontText
+                  font.pixelSize: 10
                 }
                 MouseArea { id: tap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Popouts.center = modelData.key }
               }
@@ -241,8 +260,11 @@ PanelWindow {
         spacing: 14
 
         // Header card: big round icon, the name, one line about it.
+        // Fades while a plugin's dropdown has the right side.
         Rectangle {
           width: parent.width
+          opacity: WidgetHost.popoutOpen && win.current && win.current.plugin && win.current.plugin.use === "widget" ? 0 : 1
+          Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
           height: 132
           radius: Sizes.cardRadius + 4
           color: Theme.surfaceRaised

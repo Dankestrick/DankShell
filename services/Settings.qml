@@ -26,7 +26,9 @@ Singleton {
     // Look
     pureBlack: true, outline: true, clockSize: 14, iconWeight: 700, iconFilled: false,
     // Dashboard: plugins with a button in the island's top row
-    pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"]
+    pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"],
+    // Game page
+    gameModeOnPlay: true
   })
 
   function set(key, value) {
@@ -93,6 +95,7 @@ Singleton {
       property bool iconFilled: false
 
       property var pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"]
+      property bool gameModeOnPlay: true
     }
   }
 }

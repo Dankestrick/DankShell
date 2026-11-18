@@ -39,6 +39,8 @@ Column {
       busy: Toggles.gameBusy
       status: Toggles.gameMode ? "Awake · quiet · fast" : "Off"
       onClicked: Toggles.toggleGameMode()
+      hasMore: true
+      onMore: Popouts.openCenter("game", home.QsWindow.window ? home.QsWindow.window.screen.name : "")
     }
     ToggleTile {
       width: parent.tileWidth
