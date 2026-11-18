@@ -21,6 +21,8 @@ A dynamic island shell for Omarchy. One pill at the top of each screen that grow
 rsync -a --delete --exclude .git ~/GitDank/DankShell/ ~/.config/omarchy/plugins/io.github.dankestrick.dankshell/
 ```
 
+Then `omarchy restart shell`. The shell keeps the old copy of a bar until it restarts.
+
 Turn it on: set `"bar": { "id": "io.github.dankestrick.dankshell" }` in `~/.config/omarchy/shell.json`.
 Back to the stock bar: set it to `"omarchy.bar"`.
 

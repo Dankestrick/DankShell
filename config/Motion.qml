@@ -11,6 +11,9 @@ QtObject {
   property int hover: 150  // reacting to the mouse
   property real bounce: 0.7 // 0 = no bounce, 1 = very springy (saneAspect: 0.4)
 
+  property int openDelay: 350  // how long the mouse rests on the pill before the card opens
+  property int closeDelay: 300 // grace time after the mouse leaves before it shrinks back
+
   // The easing curve used for moves. OutBack overshoots a little, which is the bounce.
   readonly property int moveEasing: bounce > 0 ? Easing.OutBack : Easing.OutCubic
   readonly property real overshoot: bounce * 2.5

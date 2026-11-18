@@ -7,6 +7,8 @@ Rectangle {
   id: pill
 
   color: Theme.surface
+  border.color: Theme.edge
+  border.width: 1
   antialiasing: true
 
   Behavior on width {

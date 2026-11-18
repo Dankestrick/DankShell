@@ -10,6 +10,7 @@ import qs.Commons
 QtObject {
   // ── 1. Surfaces ───────────────────────────────
   property color surface: "#000000"                       // the island itself (his is pure black)
+  property color edge: Qt.rgba(Color.foreground.r, Color.foreground.g, Color.foreground.b, 0.10) // faint outline so the black pill shows on dark windows
   property color surfaceRaised: Qt.lighter(Color.background, 1.35) // cards inside the island
 
   // ── 2. Text ───────────────────────────────────
