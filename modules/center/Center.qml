@@ -46,6 +46,9 @@ PanelWindow {
       out.push({ key: p.key, group: "Plugins", name: p.name, icon: p.icon, sub: p.sub, words: p.kind, plugin: p,
                  url: p.kind === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
                                         : Qt.resolvedUrl("WidgetPage.qml") })
+    out.push({ key: "notifications", group: "Device", name: "Notifications", icon: "notifications",
+               sub: "Click one to read it all, × to clear it.",
+               url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
     out.push({ key: "sound", group: "Device", name: "Sound & Bluetooth", icon: "tune",
                sub: "Where sound goes and which Bluetooth devices are on.",
                url: Qt.resolvedUrl("../pages/System.qml"), words: "audio output speaker headset bluetooth" })

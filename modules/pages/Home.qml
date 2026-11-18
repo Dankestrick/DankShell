@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import "../../"
 
 // Home — the first dashboard page: toggles, music, volume, notifications.
@@ -71,28 +72,28 @@ Column {
       anchors.left: parent.left
       anchors.leftMargin: 14
       anchors.verticalCenter: parent.verticalCenter
-      name: Toggles.notifCount > 0 ? "notifications_unread" : "notifications"
-      color: Toggles.notifCount > 0 ? Theme.accent : Theme.textDim
+      name: Notifications.count > 0 ? "notifications_unread" : "notifications"
+      color: Notifications.count > 0 ? Theme.accent : Theme.textDim
     }
     Text {
       anchors.left: bell.right
       anchors.leftMargin: 10
       anchors.verticalCenter: parent.verticalCenter
-      text: Toggles.notifCount > 0 ? Toggles.notifCount + (Toggles.notifCount === 1 ? " notification" : " notifications") : "All caught up"
-      color: Toggles.notifCount > 0 ? Theme.text : Theme.textDim
+      text: Notifications.count > 0 ? Notifications.count + (Notifications.count === 1 ? " notification" : " notifications") : "All caught up"
+      color: Notifications.count > 0 ? Theme.text : Theme.textDim
       font.family: Theme.fontText
       font.pixelSize: 12
     }
     MouseArea {
       anchors.fill: parent
       cursorShape: Qt.PointingHandCursor
-      onClicked: Toggles.showNotifications()
+      onClicked: Popouts.openCenter("notifications", home.QsWindow.window ? home.QsWindow.window.screen.name : "")
     }
     Text {
       anchors.right: parent.right
       anchors.rightMargin: 14
       anchors.verticalCenter: parent.verticalCenter
-      visible: Toggles.notifCount > 0
+      visible: Notifications.count > 0
       text: "Clear all"
       color: Theme.accent
       font.family: Theme.fontText
@@ -102,7 +103,7 @@ Column {
         anchors.fill: parent
         anchors.margins: -6
         cursorShape: Qt.PointingHandCursor
-        onClicked: Toggles.clearNotifications()
+        onClicked: Notifications.clearAll()
       }
     }
   }
