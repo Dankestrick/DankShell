@@ -62,6 +62,9 @@ PanelWindow {
     out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
                sub: "Game Mode, your controller, and your Steam games.",
                url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })
+    out.push({ key: "camera", mode: "device", group: "Device", name: "Camera", icon: "videocam",
+               sub: "Your webcam: live picture, every setting, saved looks.",
+               url: Qt.resolvedUrl("../pages/Camera.qml"), words: "camera webcam anker video brightness exposure focus zoom look" })
     out.push({ key: "sound", mode: "device", group: "Device", name: "Sound & Bluetooth", icon: "tune",
                sub: "Where sound goes and which Bluetooth devices are on.",
                url: Qt.resolvedUrl("../pages/System.qml"), words: "audio output speaker headset bluetooth" })

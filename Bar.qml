@@ -29,6 +29,10 @@ Item {
   readonly property string fontFamily: Theme.fontText
   readonly property var screenBarSizes: ({})
 
+  // Starts the webcam service at login, so a saved camera look goes back on
+  // when the camera is plugged in, even before the Camera page is opened.
+  readonly property bool webcamPresent: Webcam.present
+
   // Omarchy asks the bar about its widgets' dropdowns through these.
   // Open a widget's dropdown (Omarchy's `shell summon <id>`, keybinds):
   // opens the dashboard on this monitor, then presses the widget.

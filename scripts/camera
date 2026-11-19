@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# camera — small helper for the Camera page (services/Camera.qml).
+#   camera find               -> the webcam's /dev/videoN (found by name)
+#   camera ctrls DEV          -> v4l2-ctl --list-ctrls for DEV
+#   camera set DEV k=v ...    -> set each control in order, one at a time,
+#                                so one refused value doesn't stop the rest
+# The name comes from $DANKSHELL_CAMERA (default: Anker PowerConf C200).
+set -u
+NAME="${DANKSHELL_CAMERA:-Anker PowerConf C200}"
+
+case "${1:-}" in
+  find)
+    v4l2-ctl --list-devices 2>/dev/null | awk -v n="$NAME" '
+      index($0, n) == 1 { f = 1; next }
+      f && /\/dev\/video/ { gsub(/[ \t]/, ""); print; exit }
+      f && !/^[ \t]/ { exit }'
+    ;;
+  ctrls)
+    [ -n "${2:-}" ] && v4l2-ctl -d "$2" --list-ctrls 2>/dev/null
+    ;;
+  set)
+    dev="${2:-}"; shift 2 || exit 1
+    rc=0
+    for kv in "$@"; do
+      v4l2-ctl -d "$dev" --set-ctrl "$kv" >/dev/null 2>&1 || { echo "refused $kv" >&2; rc=1; }
+    done
+    exit $rc
+    ;;
+  *)
+    echo "usage: camera find | ctrls DEV | set DEV name=value..." >&2
+    exit 2
+    ;;
+esac
