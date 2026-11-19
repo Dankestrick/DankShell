@@ -121,7 +121,9 @@ Item {
         for (const c of (w.data || [])) { try { if (c && c.item && "label" in c.item) panel = c.item } catch (e) { } }
         return { visible: w.visible, w: w.implicitWidth, button: b ? String(b.text) : null, hasBar: !!w.bar,
                  label: panel ? panel.label : null, location: panel ? String(panel.locationQuery) : null,
-                 detecting: panel ? panel.detectingLocation : null, report: panel ? !!panel.report : null }
+                 detecting: panel ? panel.detectingLocation : null, report: panel ? !!panel.report : null,
+                 slotW: w.parent ? w.parent.implicitWidth : -1, slotHas: w.parent ? w.parent.hasContent : null, holderW: w.parent && w.parent.parent ? w.parent.parent.width : -1,
+                 slotVisible: w.parent ? w.parent.visible : null, wVisibleSelf: w.visible }
       }))
     }
     // What the widget strip sees: each widget id and whether it started.

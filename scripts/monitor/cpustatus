@@ -1,0 +1,51 @@
+#!/usr/bin/python3
+"""cpustatus — one JSON line describing what the CPU widget shows.
+
+    {"present": true, "model": "...", "usage": 12.3, "perCore": [...],
+     "freqMhz": 4300, "maxFreqMhz": 4674, "tempC": 48.9, "temps": [...],
+     "load": [0.5, 0.6, 0.6], "memUsedPct": 18.4, "top": [...]}
+
+Exits 0 with an empty object when there is nothing to show — the widget
+hides itself. A key set to null means "unsupported here" and hides that one
+control. Standard library only. No root, no network.
+
+The sampling lives in cpuctl; this just loads it in-process so a poll is
+one Python start-up, not two.
+"""
+
+import importlib.machinery
+import importlib.util
+import json
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Importing the CLI in-process would otherwise litter the plugin folder with
+# __pycache__; the plugin dir stays exactly as installed.
+sys.dont_write_bytecode = True
+
+
+def load_ctl():
+    path = os.path.join(HERE, "cpuctl")
+    loader = importlib.machinery.SourceFileLoader("cpuctl", path)
+    spec = importlib.util.spec_from_loader("cpuctl", loader)
+    mod = importlib.util.module_from_spec(spec)
+    loader.exec_module(mod)
+    return mod
+
+
+def main():
+    try:
+        ctl = load_ctl()
+        state = ctl.get()
+    except BaseException:  # never let a probe take the shell's Process down
+        state = None
+    if not state:
+        print("{}")
+        return
+    sys.stdout.write(json.dumps(state) + "\n")
+
+
+if __name__ == "__main__":
+    main()

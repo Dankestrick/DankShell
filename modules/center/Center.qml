@@ -56,6 +56,9 @@ PanelWindow {
     out.push({ key: "notifications", mode: "device", group: "Device", name: "Notifications", icon: "notifications",
                sub: "Click to read it all, click again to clear it. × clears it right away.",
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
+    out.push({ key: "monitor", mode: "device", group: "Device", name: "System", icon: "monitoring",
+               sub: "CPU, memory and GPU, live.",
+               url: Qt.resolvedUrl("../pages/Monitor.qml"), words: "cpu gpu ram memory vram temp temperature monitor load" })
     out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
                sub: "Game Mode, your controller, and your Steam games.",
                url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })

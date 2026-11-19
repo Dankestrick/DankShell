@@ -5,6 +5,7 @@ import qs.Ui
 import ".."
 import "../config/Widgets.js" as Widgets
 import "../config/Plugins.js" as Plugins
+import "../config/WeatherIcons.js" as WeatherIcons
 
 // WidgetHost — runs your Omarchy bar widgets (webcam, mail, Dropbox, network,
 // DualSense, weather, updates, tray...) inside DankShell, the way the stock
@@ -121,6 +122,25 @@ Singleton {
     }
   }
   Timer { interval: 20000; running: true; onTriggered: host.refreshEmpty() }
+
+  // Weather with a saved location gets its icon only from open-meteo; when
+  // open-meteo refuses (403 on 2026-11-18) the icon stays blank and the
+  // widget hides, even though its wttr.in reading came in fine. Fill the
+  // icon from that reading with Omarchy's own icon table. open-meteo
+  // overwrites it as soon as it answers again.
+  function fillWeather() {
+    for (const w of live) {
+      if (!w || w.moduleName !== "omarchy.weather") continue
+      for (const c of (w.data || [])) {
+        let p = null
+        try { p = c && c.item && "label" in c.item && "report" in c.item ? c.item : null } catch (e) { }
+        if (!p || p.label !== "" || !p.report || !p.report.current_condition) continue
+        const cc = p.report.current_condition[0]
+        if (cc && cc.weatherCode !== undefined) p.label = WeatherIcons.iconForCode(cc.weatherCode, false)
+      }
+    }
+  }
+  Timer { interval: 30000; repeat: true; running: true; triggeredOnStart: true; onTriggered: host.fillWeather() }
 
   // A widget's own bar button (the first thing in it that can be pressed).
   function findButton(item) {

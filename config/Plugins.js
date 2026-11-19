@@ -14,7 +14,7 @@
 // off:   true = leave it on Omarchy and skip its page (optional)
 
 var LIST = [
-  { id: "io.github.dankestrick.omapandora",  key: "pandora",   name: "Pandora",   icon: "radio", sub: "Your stations, what's playing, thumbs and skips." },
+  { id: "io.github.dankestrick.omapandora",  key: "pandora",   name: "Pandora",   icon: "music_note", sub: "Your stations, what's playing, thumbs and skips." },
   { id: "io.github.dankestrick.omakraken",   key: "kraken",    name: "Kraken",    icon: "headphones", sub: "Razer Kraken V3 Pro: battery, lights, sidetone, mic." },
   { id: "io.github.dankestrick.omagravastar", key: "gravastar", name: "Gravastar", icon: "mouse", sub: "Gravastar mouse: battery, DPI and lights." },
   { id: "io.github.dankestrick.omaiphone",   key: "iphone",    name: "iPhone",    icon: "smartphone", sub: "Your iPhone: battery, files and notifications." },
