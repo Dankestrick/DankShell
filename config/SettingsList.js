@@ -72,6 +72,10 @@ var SECTIONS = [
       { idle: "lock", label: "Lock after", kind: "choice",
         choices: [[300, "5 min"], [900, "15 min"], [1800, "30 min"], [3600, "1 hour"], [14400, "4 hours"], [86400, "24 hours"]] }
     ] },
+  { key: "glance", name: "Glance row", icon: "visibility",
+    sub: "The icons in the hover card: tray apps and bar widgets you want to see right away. Running Docker containers show at the end by themselves.",
+    words: "glance row tray apps icons hover weather vpn hide show order docker",
+    items: [ { kind: "glance" } ] },
   { key: "dashboard", name: "Top row", icon: "push_pin",
     sub: "Top of the list sits farthest left in the island.",
     words: "plugins apps pin pinned top row buttons hide show dashboard",

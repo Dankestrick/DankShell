@@ -35,6 +35,7 @@ Column {
         width: parent.width
         property var item_: modelData
         sourceComponent: modelData.kind === "apps" ? appsRows
+                       : modelData.kind === "glance" ? glanceRows
                        : modelData.kind === "look" ? lookRow
                        : modelData.kind === "choice" ? choiceRow
                        : modelData.kind === "switch" ? switchRow : slider
@@ -182,6 +183,77 @@ Column {
       color: applyTap.containsMouse ? Qt.lighter(Theme.accent, 1.1) : Theme.accent
       Text { id: applyText; anchors.centerIn: parent; text: "Restart now"; color: Theme.surface; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold }
       MouseArea { id: applyTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Quickshell.execDetached(["omarchy", "restart", "shell"]) }
+    }
+  }
+
+  // Glance row: what shows, in order (arrows move, switch hides), then what you can add.
+  Component {
+    id: glanceRows
+    Column {
+      id: gl
+      width: parent.width
+      component Head: Text { color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase; bottomPadding: 4 }
+      Head { text: "In the Glance row (left to right)" }
+      Text { visible: Glance.shown.length === 0; text: "Nothing in it yet."; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 12; bottomPadding: 6 }
+      Repeater {
+        model: Glance.shown
+        Item {
+          required property var modelData
+          required property int index
+          width: gl.width
+          height: 46
+          Row {
+            id: garrows
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+            Repeater {
+              model: [{ icon: "keyboard_arrow_up", d: -1 }, { icon: "keyboard_arrow_down", d: 1 }]
+              Rectangle {
+                required property var modelData
+                readonly property bool can: modelData.d < 0 ? index > 0 : index < Glance.shown.length - 1
+                width: 24; height: 24; radius: 12
+                opacity: can ? 1 : 0.25
+                color: gmv.containsMouse && can ? Theme.surface : "transparent"
+                Icon { anchors.centerIn: parent; name: modelData.icon; color: Theme.text }
+                MouseArea { id: gmv; anchors.fill: parent; hoverEnabled: true; enabled: parent.can; cursorShape: Qt.PointingHandCursor; onClicked: Glance.move(Glance.shown[index].key, modelData.d) }
+              }
+            }
+          }
+          Image {
+            id: gicon
+            visible: modelData.kind === "tray"
+            anchors.left: garrows.right; anchors.leftMargin: 10
+            anchors.verticalCenter: parent.verticalCenter
+            width: 18; height: 18; sourceSize.width: 36; sourceSize.height: 36
+            source: modelData.kind === "tray" ? modelData.tray.icon : ""
+          }
+          SwitchRow {
+            anchors.left: garrows.right
+            anchors.leftMargin: modelData.kind === "tray" ? 34 : 8
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            icon: modelData.kind === "tray" ? "" : modelData.icon
+            label: (index + 1) + ".  " + modelData.name
+            sub: modelData.kind === "tray" ? "Tray app" : "Bar widget"
+            checked: true
+            onToggled: (v) => { if (!v) Glance.remove(modelData.key) }
+          }
+        }
+      }
+      Rectangle { width: parent.width; height: 1; color: Theme.edge }
+      Head { text: "Add to the Glance row"; topPadding: 10 }
+      Text { visible: Glance.available.length === 0; text: "Everything is already in it."; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 12 }
+      Repeater {
+        model: Glance.available
+        SwitchRow {
+          required property var modelData
+          icon: modelData.icon; label: modelData.name
+          sub: (modelData.kind === "tray" ? "Tray app (hidden)" : "Bar widget") + " · turn on to add it at the end"
+          implicitHeight: 46
+          checked: false
+          onToggled: (v) => { if (v) Glance.add(modelData.key) }
+        }
+      }
     }
   }
 

@@ -100,7 +100,7 @@ Item {
   // Fixed spot (the card grows below it), so the pills never move out from
   // under the mouse when the peek opens.
   // ── Tray apps + running containers ────────────
-  TrayRow {
+  GlanceRow {
     id: tray
     visible: count > 0
     anchors.horizontalCenter: parent.horizontalCenter

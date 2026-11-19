@@ -29,7 +29,8 @@ Singleton {
     pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"],
     // Game page
     gameModeOnPlay: true,
-    gameDefaults: ({}),   // appid -> "mod" | "vanilla": what a game card's Play does
+    gameDefaults: ({}),
+    glance: [], glanceHidden: [],   // Glance row order ("tray:<id>" or a widget id) and hidden tray apps   // appid -> "mod" | "vanilla": what a game card's Play does
     // Windows (Hyprland overrides written to ~/.config/hypr/dankshell.lua)
     hypr: { "general:gaps_in": 10, "general:gaps_out": 20 }
   })
@@ -100,6 +101,8 @@ Singleton {
       property var pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"]
       property bool gameModeOnPlay: true
       property var gameDefaults: ({})
+      property var glance: []
+      property var glanceHidden: []
       property var hypr: ({ "general:gaps_in": 10, "general:gaps_out": 20 })
     }
   }

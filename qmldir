@@ -24,13 +24,14 @@ singleton Hypr 1.0 services/Hypr.qml
 singleton DualSense 1.0 services/DualSense.qml
 singleton Webcam 1.0 services/Webcam.qml
 singleton Docker 1.0 services/Docker.qml
+singleton Glance 1.0 services/Glance.qml
 
 # components/ — small reusable pieces
 Pill 1.0 components/Pill.qml
 Icon 1.0 components/Icon.qml
 WorkspaceDots 1.0 components/WorkspaceDots.qml
 MonitorPills 1.0 components/MonitorPills.qml
-TrayRow 1.0 components/TrayRow.qml
+GlanceRow 1.0 components/GlanceRow.qml
 Slider 1.0 components/Slider.qml
 MusicCard 1.0 components/MusicCard.qml
 ToggleTile 1.0 components/ToggleTile.qml
