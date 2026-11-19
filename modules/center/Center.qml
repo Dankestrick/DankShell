@@ -305,7 +305,30 @@ PanelWindow {
               Icon { name: "push_pin"; filled: parent.parent.on; color: parent.parent.on ? Theme.surface : Theme.textDim; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
               Text { text: parent.parent.on ? "In top row" : "Pin to top row"; color: parent.parent.on ? Theme.surface : Theme.text; font.family: Theme.fontText; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
             }
-            MouseArea { id: pinTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Settings.setPinned(win.current.key, !parent.on) }
+            MouseArea {
+              id: pinTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                const k = win.current.key
+                if (!parent.on && Glance.has(k)) pinAsk.key = k   // in the Glance row too: ask first
+                else Settings.setPinned(k, !parent.on)
+              }
+            }
+          }
+          // "Already in the Glance row" question, under the Pin button.
+          AskDouble {
+            id: pinAsk
+            property string key: ""
+            visible: key !== "" && !!win.current && win.current.key === key
+            anchors.right: parent.right
+            anchors.top: parent.top
+            anchors.topMargin: 46
+            anchors.rightMargin: 12
+            width: 300
+            z: 5
+            otherRow: "Glance row"
+            onMove: { Glance.remove(key); Settings.setPinned(key, true); key = "" }
+            onBoth: { Settings.setPinned(key, true); key = "" }
+            onCancel: key = ""
           }
           Rectangle {
             id: bigIcon

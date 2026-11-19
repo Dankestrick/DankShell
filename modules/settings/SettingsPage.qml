@@ -192,6 +192,7 @@ Column {
     Column {
       id: gl
       width: parent.width
+      property string asking: ""   // a widget that's in the Top row too: ask first
       component Head: Text { color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase; bottomPadding: 4 }
       Head { text: "In the Glance row (left to right)" }
       Text { visible: Glance.shown.length === 0; text: "Nothing in it yet."; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 12; bottomPadding: 6 }
@@ -245,13 +246,28 @@ Column {
       Text { visible: Glance.available.length === 0; text: "Everything is already in it."; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 12 }
       Repeater {
         model: Glance.available
-        SwitchRow {
+        Column {
           required property var modelData
-          icon: modelData.icon; label: modelData.name
-          sub: (modelData.kind === "tray" ? "Tray app (hidden)" : "Bar widget") + " · turn on to add it at the end"
-          implicitHeight: 46
-          checked: false
-          onToggled: (v) => { if (v) Glance.add(modelData.key) }
+          width: gl.width
+          spacing: 4
+          SwitchRow {
+            icon: modelData.icon; label: modelData.name
+            sub: (modelData.kind === "tray" ? "Tray app (hidden)" : "Bar widget") + " · turn on to add it at the end"
+            implicitHeight: 46
+            checked: gl.asking === modelData.key
+            onToggled: (v) => {
+              if (!v) { gl.asking = ""; return }
+              if (Settings.isPinned(modelData.key)) gl.asking = modelData.key
+              else Glance.add(modelData.key)
+            }
+          }
+          AskDouble {
+            visible: gl.asking === modelData.key
+            otherRow: "Top row"
+            onMove: { Settings.setPinned(modelData.key, false); Glance.add(modelData.key); gl.asking = "" }
+            onBoth: { Glance.add(modelData.key); gl.asking = "" }
+            onCancel: gl.asking = ""
+          }
         }
       }
     }
@@ -263,6 +279,7 @@ Column {
     Column {
       id: apps
       width: parent.width
+      property string asking: ""   // a widget that's in the Glance row too: ask first
       readonly property var pinned: Settings.v.pinned.map(k => WidgetHost.item(k)).filter(c => !!c)
       readonly property var others: WidgetHost.catalog.filter(c => Settings.v.pinned.indexOf(c.key) < 0)
 
@@ -307,13 +324,28 @@ Column {
       Text { text: "Plugins tab only"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase; topPadding: 10; bottomPadding: 4 }
       Repeater {
         model: apps.others
-        SwitchRow {
+        Column {
           required property var modelData
-          icon: modelData.icon; label: modelData.name
-          sub: "Turn on to pin it at the end of the top row"
-          implicitHeight: 46
-          checked: false
-          onToggled: (v) => Settings.setPinned(modelData.key, v)
+          width: apps.width
+          spacing: 4
+          SwitchRow {
+            icon: modelData.icon; label: modelData.name
+            sub: "Turn on to pin it at the end of the top row"
+            implicitHeight: 46
+            checked: apps.asking === modelData.key
+            onToggled: (v) => {
+              if (!v) { apps.asking = ""; return }
+              if (Glance.has(modelData.key)) apps.asking = modelData.key
+              else Settings.setPinned(modelData.key, true)
+            }
+          }
+          AskDouble {
+            visible: apps.asking === modelData.key
+            otherRow: "Glance row"
+            onMove: { Glance.remove(modelData.key); Settings.setPinned(modelData.key, true); apps.asking = "" }
+            onBoth: { Settings.setPinned(modelData.key, true); apps.asking = "" }
+            onCancel: apps.asking = ""
+          }
         }
       }
     }

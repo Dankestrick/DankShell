@@ -49,6 +49,7 @@ Singleton {
     return out
   }
 
+  function has(key) { return shown.some(s => s.key === key) }
   function add(key) {
     if (key.startsWith("tray:"))
       Settings.set("glanceHidden", (Settings.v.glanceHidden || []).filter(id => "tray:" + id !== key))

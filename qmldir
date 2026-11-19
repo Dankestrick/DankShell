@@ -33,6 +33,7 @@ Icon 1.0 components/Icon.qml
 WorkspaceDots 1.0 components/WorkspaceDots.qml
 MonitorPills 1.0 components/MonitorPills.qml
 GlanceRow 1.0 components/GlanceRow.qml
+AskDouble 1.0 components/AskDouble.qml
 Slider 1.0 components/Slider.qml
 MusicCard 1.0 components/MusicCard.qml
 ToggleTile 1.0 components/ToggleTile.qml
