@@ -69,12 +69,13 @@ Row {
         color: slot.btn && slot.btn.active ? Theme.urgent : Theme.text
       }
       Icon {
-        visible: slot.modelData.kind === "widget" && !slot.hasText
+        visible: slot.modelData.kind === "page" || (slot.modelData.kind === "widget" && !slot.hasText)
         anchors.centerIn: parent
         name: slot.modelData.icon; font.pixelSize: 16; color: Theme.text
       }
       onLeftClick: {
         if (modelData.kind === "tray") modelData.tray.onlyMenu ? row.menuRequested(modelData.tray) : modelData.tray.activate()
+        else if (modelData.kind === "page") Popouts.openPage(modelData.key)
         else Popouts.summon(modelData.key)
       }
       onRightClick: if (modelData.kind === "tray" && modelData.tray.hasMenu) row.menuRequested(modelData.tray)

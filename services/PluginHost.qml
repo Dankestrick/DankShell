@@ -139,7 +139,7 @@ Singleton {
         return true
       }
 
-      readonly property FileView manifestFile: FileView {
+      readonly property FileView manifestFile: FileView { printErrors: false;
         path: h.dir + "/manifest.json"
         watchChanges: true
         onFileChanged: reload()

@@ -235,7 +235,7 @@ Column {
             anchors.verticalCenter: parent.verticalCenter
             icon: modelData.kind === "tray" ? "" : modelData.icon
             label: (index + 1) + ".  " + modelData.name
-            sub: modelData.kind === "tray" ? "Tray app" : "Bar widget"
+            sub: modelData.kind === "tray" ? "Tray app" : modelData.kind === "page" ? "Page" : "Bar widget"
             checked: true
             onToggled: (v) => { if (!v) Glance.remove(modelData.key) }
           }
@@ -252,7 +252,7 @@ Column {
           spacing: 4
           SwitchRow {
             icon: modelData.icon; label: modelData.name
-            sub: (modelData.kind === "tray" ? "Tray app (hidden)" : "Bar widget") + " · turn on to add it at the end"
+            sub: (modelData.kind === "tray" ? "Tray app (hidden)" : modelData.kind === "page" ? "Page (opens in the island)" : "Bar widget") + " · turn on to add it at the end"
             implicitHeight: 46
             checked: gl.asking === modelData.key
             onToggled: (v) => {

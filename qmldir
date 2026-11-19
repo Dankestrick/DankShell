@@ -27,6 +27,8 @@ singleton Docker 1.0 services/Docker.qml
 singleton Glance 1.0 services/Glance.qml
 singleton Lyrics 1.0 services/Lyrics.qml
 singleton PluginManager 1.0 services/PluginManager.qml
+singleton Sound 1.0 services/Sound.qml
+singleton Eq 1.0 services/Eq.qml
 
 # components/ — small reusable pieces
 Pill 1.0 components/Pill.qml

@@ -46,7 +46,7 @@ Item {
     pressLater.restart()
     return true
   }
-  Connections { target: Popouts; function onSummon(id) { root.summonBarWidget(id) } }
+  Connections { target: Popouts; function onSummon(id) { root.summonBarWidget(id) } function onOpenPage(key) { const i = root.focusedIsland(); if (i) i.showPage(key) } }
   Timer {
     id: pressLater
     property var target: null

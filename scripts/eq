@@ -1,0 +1,303 @@
+#!/usr/bin/env python3
+"""DankShell EQ — a global equalizer on PipeWire's own filter-chain (no packages).
+
+Everything you hear goes through one "DankShell EQ" sink, which plays into the
+output you picked; when you switch outputs the EQ follows. The chain is mono and
+PipeWire copies it per channel:
+
+    preamp (headroom) -> headphone fix (AutoEq, per output) -> your bands
+
+Settings: ~/.config/dankshell/eq.json
+  { "enabled": false, "bands": [{"f":31,"g":0,"q":0.7}, ...10],
+    "preset": "Flat", "presets": {name: [gains]},
+    "headphones": { "<output node.name>": {"name": "...", "file": "..."} } }
+
+  eq index                 AutoEq headphone list (JSON), cached a week
+  eq fetch PATH            download one AutoEq profile (PATH from the index), print its file
+  eq on [TARGET]           start (or restart) the EQ playing into TARGET (an output
+                           node.name; default: the current default output) and make it
+                           the default output
+  eq off                   stop it and put the default output back on the real device
+  eq gains G1 ... G10      change your band gains live (no restart)
+  eq status                {"running", "target", "sink"}
+"""
+import json, math, os, re, signal, subprocess, sys, time, urllib.parse, urllib.request
+from pathlib import Path
+
+HOME = Path.home()
+CONF_DIR = HOME / ".config/dankshell"
+SETTINGS = CONF_DIR / "eq.json"
+EQ_DIR = CONF_DIR / "eq"
+HP_DIR = EQ_DIR / "headphones"
+CACHE = HOME / ".cache/dankshell"
+RUN = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "dankshell-eq"
+PIDFILE, TARGETFILE = RUN / "pid", RUN / "target"
+SINK = "dankshell_eq"
+RAW = "https://raw.githubusercontent.com/jaakkopasanen/AutoEq/master/results/"
+FREQS = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
+
+
+def default_settings():
+    return {"enabled": False, "preset": "Flat", "presets": {},
+            "bands": [{"f": f, "g": 0.0, "q": 0.9 if 62 <= f <= 8000 else 0.7} for f in FREQS],
+            "headphones": {}}
+
+
+def load():
+    s = default_settings()
+    try:
+        s.update(json.loads(SETTINGS.read_text()))
+    except (OSError, ValueError):
+        pass
+    if not isinstance(s.get("bands"), list) or len(s["bands"]) != len(FREQS):
+        s["bands"] = default_settings()["bands"]
+    return s
+
+
+def pw_dump():
+    try:
+        return json.loads(subprocess.run(["pw-dump"], capture_output=True, text=True, timeout=10).stdout or "[]")
+    except (OSError, ValueError, subprocess.SubprocessError):
+        return []
+
+
+def nodes():
+    out = []
+    for o in pw_dump():
+        if o.get("type") == "PipeWire:Interface:Node":
+            p = (o.get("info") or {}).get("props") or {}
+            out.append({"id": o["id"], "name": p.get("node.name", ""), "cls": p.get("media.class", ""),
+                        "desc": p.get("node.description", "")})
+    return out
+
+
+def default_sink_name():
+    for o in pw_dump():
+        if o.get("type") == "PipeWire:Interface:Metadata" and (o.get("props") or {}).get("metadata.name") == "default":
+            for m in o.get("metadata") or []:
+                if m.get("key") == "default.audio.sink":
+                    v = m.get("value")
+                    return v.get("name", "") if isinstance(v, dict) else ""
+    return ""
+
+
+def set_default(name):
+    for n in nodes():
+        if n["name"] == name and n["cls"] == "Audio/Sink":
+            subprocess.run(["wpctl", "set-default", str(n["id"])], timeout=10)
+            return True
+    return False
+
+
+def running():
+    try:
+        pid = int(PIDFILE.read_text())
+        os.kill(pid, 0)
+        return pid
+    except (OSError, ValueError):
+        return 0
+
+
+# ── AutoEq ────────────────────────────────────────
+def index():
+    CACHE.mkdir(parents=True, exist_ok=True)
+    f = CACHE / "autoeq-index.md"
+    if not f.is_file() or time.time() - f.stat().st_mtime > 7 * 86400:
+        req = urllib.request.Request(RAW + "INDEX.md", headers={"User-Agent": "dankshell"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            f.write_bytes(r.read(8 * 1024 * 1024))
+    out = []
+    for line in f.read_text(errors="replace").splitlines():
+        m = re.match(r"^- \[(.+?)\]\(\./(.+?)\) by (.+)$", line)
+        if m:
+            out.append({"name": m.group(1), "path": urllib.parse.unquote(m.group(2)), "by": m.group(3)})
+    print(json.dumps(out))
+
+
+def fetch(path):
+    if ".." in path or path.startswith("/"):
+        sys.exit("bad path")
+    name = path.rstrip("/").split("/")[-1]
+    url = RAW + urllib.parse.quote(f"{path}/{name} ParametricEQ.txt")
+    req = urllib.request.Request(url, headers={"User-Agent": "dankshell"})
+    with urllib.request.urlopen(req, timeout=30) as r:
+        text = r.read(64 * 1024).decode("utf-8", "replace")
+    if "Filter" not in text:
+        sys.exit("not an EQ file")
+    HP_DIR.mkdir(parents=True, exist_ok=True)
+    dest = HP_DIR / (re.sub(r"[^A-Za-z0-9._-]+", "_", path) + ".txt")
+    dest.write_text(text)
+    print(dest)
+
+
+def parse_autoeq(file):
+    """AutoEq ParametricEQ.txt -> (preamp dB, [(label, f, q, gain)])"""
+    pre, filters = 0.0, []
+    kinds = {"PK": "bq_peaking", "LSC": "bq_lowshelf", "HSC": "bq_highshelf", "LS": "bq_lowshelf", "HS": "bq_highshelf"}
+    try:
+        for line in Path(file).read_text(errors="replace").splitlines():
+            m = re.match(r"^Preamp:\s*(-?[\d.]+)\s*dB", line)
+            if m:
+                pre = float(m.group(1)); continue
+            m = re.match(r"^Filter\s+\d+:\s+ON\s+(\w+)\s+Fc\s+([\d.]+)\s+Hz\s+Gain\s+(-?[\d.]+)\s+dB\s+Q\s+([\d.]+)", line)
+            if m and m.group(1) in kinds:
+                filters.append((kinds[m.group(1)], float(m.group(2)), float(m.group(4)), float(m.group(3))))
+    except OSError:
+        pass
+    return pre, filters
+
+
+# ── The filter-chain ──────────────────────────────
+def conf_text(s, target):
+    hp = (s.get("headphones") or {}).get(target)
+    hp_pre, hp_filters = parse_autoeq(hp["file"]) if hp and hp.get("file") else (0.0, [])
+    bands = s["bands"]
+    # Headroom: the biggest boost anywhere comes off the top so loud boosts don't clip.
+    boost = max([0.0] + [float(b["g"]) for b in bands])
+    pre_db = hp_pre - boost
+    mult = 10 ** (pre_db / 20)
+    nodes_, names = [f'{{ type = builtin name = pre label = linear control = {{ "Mult" = {mult:.5f} "Add" = 0.0 }} }}'], ["pre"]
+    for i, (label, f, q, g) in enumerate(hp_filters):
+        n = f"hp{i}"
+        nodes_.append(f'{{ type = builtin name = {n} label = {label} control = {{ "Freq" = {f} "Q" = {q} "Gain" = {g} }} }}')
+        names.append(n)
+    for i, b in enumerate(bands):
+        label = "bq_lowshelf" if i == 0 else "bq_highshelf" if i == len(bands) - 1 else "bq_peaking"
+        n = f"b{i + 1}"
+        nodes_.append(f'{{ type = builtin name = {n} label = {label} control = {{ "Freq" = {float(b["f"])} "Q" = {float(b["q"])} "Gain" = {float(b["g"])} }} }}')
+        names.append(n)
+    links = [f'{{ output = "{a}:Out" input = "{b}:In" }}' for a, b in zip(names, names[1:])]
+    t = json.dumps(target)
+    return f"""# Written by DankShell (scripts/eq). Changes here get overwritten.
+context.properties = {{ log.level = 0 }}
+context.spa-libs = {{
+  audio.convert.* = audioconvert/libspa-audioconvert
+  support.*       = support/libspa-support
+}}
+context.modules = [
+  {{ name = libpipewire-module-rt args = {{ }} flags = [ ifexists nofail ] }}
+  {{ name = libpipewire-module-protocol-native }}
+  {{ name = libpipewire-module-client-node }}
+  {{ name = libpipewire-module-adapter }}
+  {{ name = libpipewire-module-filter-chain
+    args = {{
+      node.description = "DankShell EQ"
+      media.name = "DankShell EQ"
+      filter.graph = {{
+        nodes = [
+          {chr(10).join("          " + x for x in nodes_).strip()}
+        ]
+        links = [
+          {chr(10).join("          " + x for x in links).strip()}
+        ]
+        inputs = [ "pre:In" ]
+        outputs = [ "{names[-1]}:Out" ]
+      }}
+      audio.channels = 2
+      audio.position = [ FL FR ]
+      capture.props = {{
+        node.name = "{SINK}"
+        media.class = "Audio/Sink"
+        priority.session = 0
+      }}
+      playback.props = {{
+        node.name = "{SINK}.out"
+        node.passive = true
+        target.object = {t}
+        node.dont-reconnect = false
+      }}
+    }}
+  }}
+]
+"""
+
+
+def stop():
+    pid = running()
+    if pid:
+        try:
+            os.kill(pid, signal.SIGTERM)
+        except OSError:
+            pass
+        for _ in range(30):
+            if not running():
+                break
+            time.sleep(0.1)
+    for f in (PIDFILE,):
+        try:
+            f.unlink()
+        except OSError:
+            pass
+
+
+def on(target=""):
+    s = load()
+    cur = default_sink_name()
+    if not target:
+        target = cur if cur and cur != SINK else (TARGETFILE.read_text().strip() if TARGETFILE.is_file() else "")
+    if not target or target == SINK:
+        sys.exit("no output to play into")
+    EQ_DIR.mkdir(parents=True, exist_ok=True)
+    conf = EQ_DIR / "filter-chain.conf"
+    conf.write_text(conf_text(s, target))
+    stop()
+    RUN.mkdir(parents=True, exist_ok=True)
+    p = subprocess.Popen(["pipewire", "-c", str(conf)], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=open(RUN / "log", "w"), start_new_session=True)
+    PIDFILE.write_text(str(p.pid))
+    TARGETFILE.write_text(target)
+    for _ in range(50):
+        time.sleep(0.1)
+        if set_default(SINK):
+            print(json.dumps({"running": True, "target": target}))
+            return
+    stop()
+    set_default(target)
+    sys.exit("the EQ didn't start (see " + str(RUN / "log") + ")")
+
+
+def off():
+    target = TARGETFILE.read_text().strip() if TARGETFILE.is_file() else ""
+    if default_sink_name() == SINK and target:
+        set_default(target)
+    stop()
+    if target:
+        set_default(target)
+    print(json.dumps({"running": False, "target": target}))
+
+
+def gains(vals):
+    """Change band gains live on the running EQ (both channels), no restart."""
+    s = load()
+    eq = next((n for n in nodes() if n["name"] == SINK), None)
+    if not eq or not running():
+        return
+    params = []
+    for i, v in enumerate(vals[:len(FREQS)]):
+        params += [f'"b{i + 1}:Gain"', f"{float(v):.2f}"]
+    # headroom follows the biggest boost
+    target = TARGETFILE.read_text().strip() if TARGETFILE.is_file() else ""
+    hp = (s.get("headphones") or {}).get(target)
+    hp_pre = parse_autoeq(hp["file"])[0] if hp and hp.get("file") else 0.0
+    mult = 10 ** ((hp_pre - max([0.0] + [float(v) for v in vals])) / 20)
+    params += ['"pre:Mult"', f"{mult:.5f}"]
+    subprocess.run(["pw-cli", "set-param", str(eq["id"]), "Props", "{ params = [ " + " ".join(params) + " ] }"],
+                   capture_output=True, timeout=10)
+
+
+def status():
+    print(json.dumps({"running": bool(running()), "target": TARGETFILE.read_text().strip() if TARGETFILE.is_file() else "",
+                      "default": default_sink_name(), "sink": SINK}))
+
+
+if __name__ == "__main__":
+    a = sys.argv[1:]
+    cmd = a[0] if a else ""
+    if cmd == "index": index()
+    elif cmd == "fetch" and len(a) == 2: fetch(a[1])
+    elif cmd == "on": on(a[1] if len(a) > 1 else "")
+    elif cmd == "off": off()
+    elif cmd == "gains": gains(a[1:])
+    elif cmd == "status": status()
+    else:
+        print(__doc__, file=sys.stderr); sys.exit(2)

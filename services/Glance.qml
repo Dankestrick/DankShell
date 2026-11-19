@@ -8,6 +8,7 @@ import Quickshell.Services.SystemTray
 //   tray apps ("tray:<id>"): Vesktop, Steam, Dropbox... A new tray app shows
 //     up at the end by itself until you hide it.
 //   bar widgets (their id, e.g. "omarchy.weather"): only when you add them.
+//   pages (their key, e.g. "audio"): your page plugins; click opens the page.
 // Settings › Glance row reorders, hides and adds. Running Docker containers
 // always sit at the end (TrayRow).
 Singleton {
@@ -29,6 +30,7 @@ Singleton {
       } else {
         const c = WidgetHost.item(k)
         if (c && c.kind === "widget") { out.push({ key: k, kind: "widget", name: c.name, icon: c.icon, entry: c.entry }); seen[k] = true }
+        else if (c && c.kind === "page") { out.push({ key: k, kind: "page", name: c.name, icon: c.icon }); seen[k] = true }
       }
     }
     for (const t of trayItems) {
@@ -45,7 +47,7 @@ Singleton {
     for (const t of trayItems)
       if (hidden.indexOf(t.id) >= 0) out.push({ key: trayKey(t), kind: "tray", name: trayName(t), icon: "apps", tray: t })
     for (const c of WidgetHost.catalog)
-      if (c.kind === "widget" && keys.indexOf(c.key) < 0) out.push({ key: c.key, kind: "widget", name: c.name, icon: c.icon, entry: c.entry })
+      if (keys.indexOf(c.key) < 0) out.push({ key: c.key, kind: c.kind, name: c.name, icon: c.icon, entry: c.entry })
     return out
   }
 

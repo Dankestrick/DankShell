@@ -1,33 +1,11 @@
 import QtQuick
-import Quickshell.Services.Pipewire
 import "../../"
 
-// System — where sound goes and which Bluetooth devices are connected.
-// Click a speaker/headset to make it the output. Click a Bluetooth device
-// to connect or disconnect it.
+// System — the Device window's Bluetooth page: click a device to connect or
+// disconnect it. (Sound moved to the Audio page, modules/pages/Audio.qml.)
 Column {
   id: sys
   spacing: 6
-
-  // ── Sound output ──────────────────────────────
-  SectionLabel { text: "Sound output" }
-
-  Repeater {
-    model: Audio.outputs
-    ListRow {
-      required property var modelData
-      width: sys.width
-      icon: (modelData.description || "").toLowerCase().includes("hdmi") ? "tv"
-          : (modelData.description || "").toLowerCase().includes("kraken") || (modelData.description || "").toLowerCase().includes("headset") ? "headphones"
-          : "speaker"
-      title: modelData.description || modelData.name
-      active: Audio.sink === modelData
-      status: active ? Math.round(Audio.volume * 100) + "%" : ""
-      onClicked: Audio.useOutput(modelData)
-    }
-  }
-
-  Item { width: 1; height: 6 }
 
   // ── Bluetooth ─────────────────────────────────
   SectionLabel { text: Toggles.bluetooth ? "Bluetooth" : "Bluetooth (off)" }

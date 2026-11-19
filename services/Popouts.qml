@@ -23,6 +23,8 @@ Singleton {
     if (again) backToIsland(s)
   }
   signal backToIsland(string screenName)
+  // Open a page plugin's page in the island (Glance row icons; Bar.qml listens).
+  signal openPage(string key)
 
   // Open a bar widget's dropdown under the island (Bar.qml listens).
   signal summon(string id)

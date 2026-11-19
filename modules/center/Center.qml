@@ -69,9 +69,12 @@ PanelWindow {
     out.push({ key: "camera", mode: "device", group: "Device", name: "Camera", icon: "videocam",
                sub: "Your webcam: live picture, every setting, saved looks.",
                url: Qt.resolvedUrl("../pages/Camera.qml"), words: "camera webcam anker video brightness exposure focus zoom look" })
-    out.push({ key: "sound", mode: "device", group: "Device", name: "Sound & Bluetooth", icon: "tune",
-               sub: "Where sound goes and which Bluetooth devices are on.",
-               url: Qt.resolvedUrl("../pages/System.qml"), words: "audio output speaker headset bluetooth" })
+    out.push({ key: "sound", mode: "device", group: "Device", name: "Audio", icon: "volume_up",
+               sub: "Outputs, mics, app volumes and the EQ.",
+               url: Qt.resolvedUrl("../pages/Audio.qml"), words: "audio sound output speaker headset mic microphone volume eq equalizer autoeq hearing" })
+    out.push({ key: "bluetooth", mode: "device", group: "Device", name: "Bluetooth", icon: "bluetooth",
+               sub: "Which Bluetooth devices are on.",
+               url: Qt.resolvedUrl("../pages/System.qml"), words: "bluetooth pair devices controller headphones" })
     for (const sec of SettingsList.SECTIONS)
       out.push({ key: sec.key, mode: "settings", group: "Settings", name: sec.name, icon: sec.icon, sub: sec.sub,
                  url: Qt.resolvedUrl("../settings/SettingsPage.qml"), section: sec,
@@ -178,6 +181,14 @@ PanelWindow {
           Keys.onDownPressed: win.go(1)
           Keys.onTabPressed: win.go(1)
           Keys.onEscapePressed: Popouts.closeCenter()
+          // Page Up / Page Down / Home / End scroll the page on the right.
+          Keys.onPressed: (e) => {
+            const step = pane.height * 0.85, maxY = Math.max(0, pane.contentHeight - pane.height)
+            if (e.key === Qt.Key_PageDown) { pane.contentY = Math.min(maxY, pane.contentY + step); e.accepted = true }
+            else if (e.key === Qt.Key_PageUp) { pane.contentY = Math.max(0, pane.contentY - step); e.accepted = true }
+            else if (e.key === Qt.Key_End && search.text === "") { pane.contentY = maxY; e.accepted = true }
+            else if (e.key === Qt.Key_Home && search.text === "") { pane.contentY = 0; e.accepted = true }
+          }
           Text {
             anchors.fill: parent
             verticalAlignment: Text.AlignVCenter

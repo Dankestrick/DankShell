@@ -23,7 +23,9 @@ var LIST = [
   { id: "io.github.dankestrick.omaiphone",   key: "iphone",    name: "iPhone",    icon: "smartphone", sub: "Your iPhone: battery, files and notifications." },
   { id: "io.github.dankestrick.omajournal",  key: "journal",   name: "Journal",   icon: "edit_note", sub: "Today's note in the Dank Vault." },
   { id: "atoslins.dualsense",               key: "dualsense", name: "DualSense", icon: "sports_esports", sub: "Lightbar, triggers, rumble, mic and a live input test.", stayOn: true },
-  { id: "io.github.dankestrick.omagrokbots", key: "grokbots",  name: "Grok Bots", icon: "smart_toy", model: "Inbox.qml", sub: "Messages from your Grok bots." }
+  { id: "io.github.dankestrick.omagrokbots", key: "grokbots",  name: "Grok Bots", icon: "smart_toy", model: "Inbox.qml", sub: "Messages from your Grok bots." },
+  // Omarchy's own audio panel, rebuilt as a page (+ EQ). Omarchy keeps its copy on.
+  { id: "omarchy.audio",                     key: "audio",     name: "Audio",     icon: "volume_up", sub: "Outputs, mics, app volumes and the EQ.", stayOn: true }
 ]
 
 function active() { return LIST.filter(function(p) { return !p.off }) }
