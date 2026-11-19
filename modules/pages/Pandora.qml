@@ -177,6 +177,86 @@ Column {
     onMoved: (v) => page.service.setVolume(v)
   }
 
+  // ── Lyrics ────────────────────────────────────
+  // The line being sung sits in the middle, lit; the rest fade toward the edges.
+  Rectangle {
+    visible: page.connected && page.hasMedia
+    width: parent.width
+    height: lyHead.height + (Settings.v.lyricsOpen ? lyBox.height + 12 : 0) + 20
+    radius: Sizes.cardRadius
+    color: Theme.surfaceRaised
+    clip: true
+    Behavior on height { NumberAnimation { duration: Motion.ms(Motion.move); easing.type: Easing.OutCubic } }
+
+    Item {
+      id: lyHead
+      x: 14; y: 10
+      width: parent.width - 28; height: 22
+      Icon { id: lyIcon; name: "lyrics"; color: Theme.accent; anchors.verticalCenter: parent.verticalCenter }
+      Text {
+        anchors.left: lyIcon.right; anchors.leftMargin: 8; anchors.verticalCenter: parent.verticalCenter
+        text: "Lyrics"
+        color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold
+      }
+      Text {
+        anchors.right: lyFold.left; anchors.rightMargin: 8; anchors.verticalCenter: parent.verticalCenter
+        width: parent.width - 140; horizontalAlignment: Text.AlignRight; elide: Text.ElideRight
+        visible: Settings.v.lyricsOpen
+        text: Lyrics.state === "loading" ? "Looking…" : Lyrics.state === "ready" && Lyrics.match ? "from lrclib · " + Lyrics.match.title : ""
+        color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
+      }
+      Icon { id: lyFold; anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; name: Settings.v.lyricsOpen ? "expand_less" : "expand_more"; color: Theme.textDim }
+      MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: Settings.set("lyricsOpen", !Settings.v.lyricsOpen) }
+    }
+
+    Item {
+      id: lyBox
+      visible: Settings.v.lyricsOpen
+      x: 14; y: lyHead.y + lyHead.height + 8
+      width: parent.width - 28
+      height: 170
+
+      Text {
+        anchors.centerIn: parent
+        visible: Lyrics.state !== "ready"
+        text: Lyrics.state === "loading" ? "Looking for lyrics…" : "No synced lyrics for this one"
+        color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 12
+      }
+      ListView {
+        id: lyList
+        anchors.fill: parent
+        visible: Lyrics.state === "ready"
+        clip: true
+        interactive: true
+        spacing: 6
+        model: Lyrics.lines
+        currentIndex: Lyrics.current
+        highlightRangeMode: ListView.ApplyRange
+        preferredHighlightBegin: (height - (currentItem ? currentItem.height : 0)) / 2
+        preferredHighlightEnd: (height + (currentItem ? currentItem.height : 0)) / 2
+        highlightMoveDuration: 450
+        highlightMoveVelocity: -1
+        onModelChanged: Qt.callLater(() => positionViewAtIndex(Math.max(0, currentIndex), ListView.Center))
+        delegate: Text {
+          required property var modelData
+          required property int index
+          readonly property bool isCur: ListView.isCurrentItem
+          readonly property real dist: Math.abs(index - Lyrics.current)
+          width: lyList.width
+          horizontalAlignment: Text.AlignHCenter
+          wrapMode: Text.WordWrap
+          text: modelData.text || "· · ·"
+          color: isCur ? Theme.accent : Theme.text
+          opacity: isCur ? 1 : Math.max(0.25, 0.75 - dist * 0.15)
+          font.family: Theme.fontText
+          font.pixelSize: isCur ? 15 : 12
+          font.weight: isCur ? Font.DemiBold : Font.Normal
+          Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
+        }
+      }
+    }
+  }
+
   // ── Pinned stations ───────────────────────────
   Flow {
     width: parent.width

@@ -25,6 +25,7 @@ singleton DualSense 1.0 services/DualSense.qml
 singleton Webcam 1.0 services/Webcam.qml
 singleton Docker 1.0 services/Docker.qml
 singleton Glance 1.0 services/Glance.qml
+singleton Lyrics 1.0 services/Lyrics.qml
 
 # components/ — small reusable pieces
 Pill 1.0 components/Pill.qml

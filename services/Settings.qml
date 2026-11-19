@@ -30,7 +30,8 @@ Singleton {
     // Game page
     gameModeOnPlay: true,
     gameDefaults: ({}),
-    glance: [], glanceHidden: [],   // Glance row order ("tray:<id>" or a widget id) and hidden tray apps   // appid -> "mod" | "vanilla": what a game card's Play does
+    glance: [], glanceHidden: [],
+    lyricsOpen: true,   // Pandora page: lyrics card open or folded   // Glance row order ("tray:<id>" or a widget id) and hidden tray apps   // appid -> "mod" | "vanilla": what a game card's Play does
     // Windows (Hyprland overrides written to ~/.config/hypr/dankshell.lua)
     hypr: { "general:gaps_in": 10, "general:gaps_out": 20 }
   })
@@ -103,6 +104,7 @@ Singleton {
       property var gameDefaults: ({})
       property var glance: []
       property var glanceHidden: []
+      property bool lyricsOpen: true
       property var hypr: ({ "general:gaps_in": 10, "general:gaps_out": 20 })
     }
   }
