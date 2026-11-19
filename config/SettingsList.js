@@ -5,6 +5,9 @@
 //   slider: key, label, min, max, step, unit
 //   switch: key, label, sub, icon, kind: "switch"
 //   apps:   kind: "apps" (one switch per plugin: pin it to the top row)
+//   hypr:   a Hyprland option instead of `key` (services/Hypr.qml)
+//   idle:   kind: "choice", Omarchy's screensaver/lock time (scripts/idle-set)
+// Search in the Settings window matches every item's label too.
 
 var SECTIONS = [
   { key: "island", name: "Bar & Island", icon: "crop_16_9",
@@ -40,6 +43,32 @@ var SECTIONS = [
       { key: "iconFilled", label: "Solid icons", sub: "Off = outlined", icon: "format_paint", kind: "switch" },
       { key: "clockSize", label: "Clock size", min: 11, max: 20, step: 1, unit: "px" },
       { key: "iconWeight", label: "Icon weight", min: 100, max: 700, step: 100, unit: "" }
+    ] },
+  { key: "windows", name: "Windows", icon: "select_window",
+    sub: "Gaps, borders, rounding, see-through, blur and shadows. Changes show right away.",
+    words: "gaps border rounding corners opacity transparent blur shadow animations hyprland",
+    items: [
+      { hypr: "general:gaps_in", label: "Gap between windows", min: 0, max: 40, step: 1, unit: "px" },
+      { hypr: "general:gaps_out", label: "Gap to the screen edge", min: 0, max: 60, step: 1, unit: "px" },
+      { hypr: "general:border_size", label: "Border", min: 0, max: 8, step: 1, unit: "px" },
+      { hypr: "decoration:rounding", label: "Corner rounding", min: 0, max: 30, step: 1, unit: "px" },
+      { hypr: "decoration:active_opacity", label: "Focused window see-through", min: 0.5, max: 1, step: 0.01, unit: "" },
+      { hypr: "decoration:inactive_opacity", label: "Other windows see-through", min: 0.5, max: 1, step: 0.01, unit: "" },
+      { hypr: "decoration:blur:enabled", label: "Blur", sub: "Behind see-through windows", icon: "blur_on", kind: "switch" },
+      { hypr: "decoration:blur:size", label: "Blur size", min: 1, max: 20, step: 1, unit: "" },
+      { hypr: "decoration:blur:passes", label: "Blur passes", min: 1, max: 6, step: 1, unit: "" },
+      { hypr: "decoration:shadow:enabled", label: "Shadows", sub: "Under windows", icon: "ev_shadow", kind: "switch" },
+      { hypr: "decoration:shadow:range", label: "Shadow size", min: 0, max: 50, step: 1, unit: "px" },
+      { hypr: "animations:enabled", label: "Animations", sub: "Windows sliding and fading", icon: "animation", kind: "switch" }
+    ] },
+  { key: "timeouts", name: "Timeouts", icon: "timer",
+    sub: "When the screensaver starts and the screen locks.",
+    words: "idle lock screensaver timeout sleep minutes",
+    items: [
+      { idle: "screensaver", label: "Screensaver after", kind: "choice",
+        choices: [[60, "1 min"], [120, "2 min"], [300, "5 min"], [600, "10 min"], [900, "15 min"], [1800, "30 min"]] },
+      { idle: "lock", label: "Lock after", kind: "choice",
+        choices: [[300, "5 min"], [900, "15 min"], [1800, "30 min"], [3600, "1 hour"], [14400, "4 hours"], [86400, "24 hours"]] }
     ] },
   { key: "dashboard", name: "Top row", icon: "push_pin",
     sub: "Top of the list sits farthest left in the island.",

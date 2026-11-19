@@ -28,7 +28,9 @@ Singleton {
     // Dashboard: plugins with a button in the island's top row
     pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"],
     // Game page
-    gameModeOnPlay: true
+    gameModeOnPlay: true,
+    // Windows (Hyprland overrides written to ~/.config/hypr/dankshell.lua)
+    hypr: { "general:gaps_in": 10, "general:gaps_out": 20 }
   })
 
   function set(key, value) {
@@ -96,6 +98,7 @@ Singleton {
 
       property var pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"]
       property bool gameModeOnPlay: true
+      property var hypr: ({ "general:gaps_in": 10, "general:gaps_out": 20 })
     }
   }
 }

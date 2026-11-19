@@ -64,7 +64,9 @@ PanelWindow {
                url: Qt.resolvedUrl("../pages/System.qml"), words: "audio output speaker headset bluetooth" })
     for (const sec of SettingsList.SECTIONS)
       out.push({ key: sec.key, mode: "settings", group: "Settings", name: sec.name, icon: sec.icon, sub: sec.sub,
-                 url: Qt.resolvedUrl("../settings/SettingsPage.qml"), words: sec.words, section: sec })
+                 url: Qt.resolvedUrl("../settings/SettingsPage.qml"), section: sec,
+                 // search finds single settings too
+                 words: sec.words + " " + sec.items.map(i => i.label || "").join(" ") })
     return out
   }
   // "@plugins" / "@settings" open a window on its first page.
@@ -334,11 +336,12 @@ PanelWindow {
           function load() {
             if (!active || !win.current) return
             key = win.current.key
-            const props = win.current.section ? { section: win.current.section }
+            const props = win.current.section ? { section: win.current.section, filter: search.text }
                         : win.current.plugin && win.current.plugin.use !== "page" ? { plugin: win.current.plugin } : {}
             setSource(win.current.url, props)
           }
           onLoaded: {
+            if ("filter" in item) item.filter = Qt.binding(() => search.text)
             item.width = Qt.binding(() => pageLoader.width)
             if ("showing" in item) item.showing = Qt.binding(() => win.wanted)
             if (item.closeRequested) item.closeRequested.connect(Popouts.closeCenter)

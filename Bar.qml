@@ -113,6 +113,17 @@ Item {
     function settings(): void { center("@settings") }
     function plugins(): void { center("@plugins") }
     function gamemode(): void { Toggles.toggleGameMode() }
+    // A look inside one widget (for fixing ones that show nothing).
+    function widgetInfo(id: string): string {
+      return JSON.stringify(WidgetHost.live.filter(w => w.moduleName === id).map(w => {
+        const b = WidgetHost.findButton(w)
+        let panel = null
+        for (const c of (w.data || [])) { try { if (c && c.item && "label" in c.item) panel = c.item } catch (e) { } }
+        return { visible: w.visible, w: w.implicitWidth, button: b ? String(b.text) : null, hasBar: !!w.bar,
+                 label: panel ? panel.label : null, location: panel ? String(panel.locationQuery) : null,
+                 detecting: panel ? panel.detectingLocation : null, report: panel ? !!panel.report : null }
+      }))
+    }
     // What the widget strip sees: each widget id and whether it started.
     function widgets(): string {
       const reg = WidgetHost.registry

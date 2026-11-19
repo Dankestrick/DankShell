@@ -40,7 +40,7 @@ PanelWindow {
   mask: Region { item: pill }
 
   // Toggle states only refresh while a dashboard is open.
-  onIsOpenChanged: { Toggles.watching = isOpen; if (!isOpen) { dashboard.reset(); if (WidgetHost.popoutOpen) WidgetHost.closeAll() } }
+  onIsOpenChanged: { Toggles.watching = isOpen; if (isOpen) WidgetHost.refreshEmpty(); if (!isOpen) { dashboard.reset(); if (WidgetHost.popoutOpen) WidgetHost.closeAll() } }
 
   // Widget dropdowns open just under the island on this monitor.
   readonly property int dropY: Sizes.gapFromEdge + pill.height

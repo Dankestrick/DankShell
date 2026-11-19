@@ -1,0 +1,12 @@
+#!/bin/bash
+# Set Omarchy's lock or screensaver time (seconds) in shell.json.
+#   idle-set screensaver 300 | idle-set lock 3600
+# The shell needs a restart to pick it up (its idle timer gets stuck on a
+# live change); DankShell's Settings › Timeouts has the Apply button for that.
+set -euo pipefail
+key=$1 secs=$2
+[[ $key == screensaver || $key == lock ]] || { echo "screensaver or lock" >&2; exit 1; }
+[[ $secs =~ ^[0-9]+$ ]] || { echo "seconds must be a number" >&2; exit 1; }
+f="$HOME/.config/omarchy/shell.json"
+tmp=$(mktemp "$f.XXXXXX")
+jq --arg k "$key" --argjson v "$secs" '.idle[$k] = $v' "$f" >"$tmp" && mv "$tmp" "$f"

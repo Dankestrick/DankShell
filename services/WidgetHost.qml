@@ -106,6 +106,22 @@ Singleton {
   function canOpen(widget) { return !!widget && typeof widget.open === "function" }
   function openWidget(widget) { if (!canOpen(widget)) return false; widget.open(); return true }
 
+  // A widget that came up empty (weather that missed its first fetch while
+  // the shell was starting) gets asked to try again: once soon after start,
+  // and whenever the dashboard opens.
+  property real lastNudge: 0
+  function refreshEmpty() {
+    // At most every 10 minutes, so a service that's refusing us isn't hammered.
+    if (Date.now() - lastNudge < 600000) return
+    lastNudge = Date.now()
+    for (const w of live) {
+      if (!w || typeof w.refresh !== "function") continue
+      const b = findButton(w)
+      if (b && "text" in b && String(b.text || "") === "") { try { w.refresh() } catch (e) { } }
+    }
+  }
+  Timer { interval: 20000; running: true; onTriggered: host.refreshEmpty() }
+
   // A widget's own bar button (the first thing in it that can be pressed).
   function findButton(item) {
     const queue = [{ it: item, d: 0 }]
