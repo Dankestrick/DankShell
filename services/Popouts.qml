@@ -10,8 +10,18 @@ Singleton {
   property string screen: ""   // monitor it's on
   property string mode: ""     // plugins, settings or device (Center sets it)
 
-  function openCenter(key, screenName) { screen = screenName; center = key }
+  property bool fromIsland: false    // opened from the dashboard: "back" reopens it
+  property string lastDevice: "game" // the Device button opens the last Device page you used
+
+  function openCenter(key, screenName, viaIsland) { screen = screenName; fromIsland = !!viaIsland; center = key }
   function closeCenter() { center = "" }
+  // Right-click in the window: close it and go back to the dashboard if that's where you came from.
+  function back() {
+    const s = screen, again = fromIsland
+    closeCenter()
+    if (again) backToIsland(s)
+  }
+  signal backToIsland(string screenName)
 
   // Open a bar widget's dropdown under the island (Bar.qml listens).
   signal summon(string id)

@@ -6,7 +6,8 @@ import "../../"
 // the top-left corner (see Island.qml). This file leaves room for it.
 //
 // Top left:  the date under the clock (click it for the Journal).
-// Top right: your pinned plugins, then themes, wallpapers, settings.
+// Top right: your pinned plugins, then themes, wallpapers, device (Games,
+// Camera, System...), plugins, settings.
 //   A pinned page plugin (Pandora, Kraken...) opens right here, sliding in
 //   like a tab; click it again to go back Home.
 //   A pinned widget (network, mail...) is the real widget with its dropdown.
@@ -107,6 +108,7 @@ Item {
     Rectangle { visible: dash.pins.length > 0; width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Theme.edge }
     HeaderButton { icon: "palette"; onClicked: dash.themesRequested() }
     HeaderButton { icon: "wallpaper"; onClicked: dash.wallsRequested() }
+    HeaderButton { icon: "devices"; onClicked: dash.pageRequested(Popouts.lastDevice) }
     HeaderButton { icon: "extension"; onClicked: dash.pageRequested("@plugins") }
     HeaderButton { icon: "settings"; onClicked: dash.pageRequested("@settings") }
   }

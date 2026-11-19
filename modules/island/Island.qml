@@ -72,7 +72,11 @@ PanelWindow {
   // A pinned page opens in the island; anything else in the Center window.
   function showPage(key) {
     if (dashboard.pages.some(p => p.key === key)) { open(); dashboard.page = key }
-    else { state = "closed"; Popouts.openCenter(key, modelData.name) }
+    else { state = "closed"; Popouts.openCenter(key, modelData.name, true) }
+  }
+  Connections {
+    target: Popouts
+    function onBackToIsland(screenName) { if (screenName === island.modelData.name) island.open() }
   }
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
@@ -166,7 +170,7 @@ PanelWindow {
       onCloseRequested: island.state = "closed"
       onThemesRequested: island.showThemes()
       onWallsRequested: island.showWalls()
-      onPageRequested: (key) => { island.state = "closed"; Popouts.openCenter(key, island.modelData.name) }
+      onPageRequested: (key) => { island.state = "closed"; Popouts.openCenter(key, island.modelData.name, true) }
       width: island.dashWidth
       height: Math.max(Sizes.dashHeight, contentHeight)
       anchors.horizontalCenter: parent.horizontalCenter

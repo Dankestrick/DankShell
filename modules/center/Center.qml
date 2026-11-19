@@ -85,7 +85,7 @@ PanelWindow {
   onAllPagesChanged: resolveStart()   // the plugin list can arrive a moment later
   readonly property var current: allPages.find(p => p.key === Popouts.center) || null
   property string mode: "plugins"
-  onCurrentChanged: if (current) { mode = current.mode; if (wanted) Popouts.mode = mode }
+  onCurrentChanged: if (current) { mode = current.mode; if (wanted) Popouts.mode = mode; if (mode === "device") Popouts.lastDevice = current.key }
   readonly property var pages: allPages.filter(p => p.mode === mode)
   readonly property var shown: {
     const q = search.text.trim().toLowerCase()
@@ -115,6 +115,15 @@ PanelWindow {
     Behavior on scale { NumberAnimation { duration: Motion.ms(Motion.move); easing.type: Motion.moveEasing; easing.overshoot: Motion.overshoot } }
 
     Keys.onEscapePressed: Popouts.closeCenter()
+
+    // Right-click anywhere = back to the dashboard (or just close if a key opened it).
+    // Only takes the right button, so left clicks and the wheel go through.
+    MouseArea {
+      anchors.fill: parent
+      z: 100
+      acceptedButtons: Qt.RightButton
+      onClicked: Popouts.back()
+    }
 
     // ── Sidebar ───────────────────────────────
     Item {
