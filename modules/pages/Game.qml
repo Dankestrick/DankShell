@@ -153,7 +153,8 @@ Column {
           x: 12
           anchors.bottom: parent.bottom; anchors.bottomMargin: 10
           spacing: 6
-          CardButton { visible: (g.modelData.mods || []).length > 0; icon: "extension"; label: "r2modman"; onClicked: page.openModManager() }
+          CardButton { icon: "rocket_launch"; label: g.modelData.launcher ? g.modelData.launcher.name : "Modded"; onClicked: page.play(g.modelData, false) }
+          CardButton { visible: (g.modelData.mods || []).length > 0; icon: "extension"; label: "Mods"; onClicked: page.openModManager() }
           CardButton { icon: "play_arrow"; label: "Vanilla"; onClicked: page.play(g.modelData, true) }
         }
       }
