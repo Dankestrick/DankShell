@@ -22,11 +22,13 @@ Column {
   }
 
   // Games with an r2modman profile play modded (the same launch r2modman's
-  // "Start modded" does); `vanilla` skips the mods.
+  // "Start modded" does); GTA plays with mods (scripts/gta-modded: VPN on,
+  // GTA, then mods once Rockstar shows up); `vanilla` skips the mods.
   function play(g, vanilla) {
     if (Settings.v.gameModeOnPlay && !Toggles.gameMode) Toggles.toggleGameMode()
     const mods = g.mods || []
-    if (!vanilla && mods.length) Quickshell.execDetached(["steam", "-applaunch", g.appid].concat(mods[0].args))
+    if (!vanilla && g.launcher) Quickshell.execDetached([g.launcher.script])
+    else if (!vanilla && mods.length) Quickshell.execDetached(["steam", "-applaunch", g.appid].concat(mods[0].args))
     else Quickshell.execDetached(["steam", "steam://rungameid/" + g.appid])
     Popouts.closeCenter()
   }
@@ -106,7 +108,7 @@ Column {
         id: g
         required property var modelData
         width: (page.width - 10) / 2
-        readonly property bool modded: (modelData.mods || []).length > 0
+        readonly property bool modded: (modelData.mods || []).length > 0 || !!modelData.launcher
         height: width * 0.47 + (modded ? 80 : 46)
         radius: Sizes.cardRadius
         color: gTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surfaceRaised
@@ -139,7 +141,8 @@ Column {
           width: parent.width - 64
           Text { width: parent.width; text: g.modelData.name; elide: Text.ElideRight; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
           Text {
-            text: (g.modded ? "Modded (" + g.modelData.mods[0].profile + ")  ·  " : "") + page.ago(g.modelData.lastPlayed)
+            text: (g.modelData.launcher ? "With " + g.modelData.launcher.name + "  ·  "
+                 : g.modded ? "Modded (" + g.modelData.mods[0].profile + ")  ·  " : "") + page.ago(g.modelData.lastPlayed)
             color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
           }
         }
@@ -150,7 +153,7 @@ Column {
           x: 12
           anchors.bottom: parent.bottom; anchors.bottomMargin: 10
           spacing: 6
-          CardButton { icon: "extension"; label: "r2modman"; onClicked: page.openModManager() }
+          CardButton { visible: (g.modelData.mods || []).length > 0; icon: "extension"; label: "r2modman"; onClicked: page.openModManager() }
           CardButton { icon: "play_arrow"; label: "Vanilla"; onClicked: page.play(g.modelData, true) }
         }
       }

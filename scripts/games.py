@@ -5,7 +5,8 @@ Reads Steam's own files: libraryfolders.vdf, each library's appmanifest_*.acf
 and the library art cache. Runtimes, Proton and redistributables are skipped.
 "mods" lists r2modman profiles for the game (~/.config/r2modmanPlus-local/<Game>/
 profiles/<Profile>), each with the Steam launch arguments r2modman's own
-"Start modded" sends (BepInEx doorstop + --r2profile for linux_wrapper.sh)."""
+"Start modded" sends (BepInEx doorstop + --r2profile for linux_wrapper.sh).
+"launcher" (GTA: mods) is a DankShell script that does the modded launch."""
 import json, re
 from pathlib import Path
 
@@ -77,8 +78,16 @@ def r2_profiles(game_name):
     return out
 
 
+# Games with their own modded launch script in DankShell's scripts/.
+LAUNCHERS = {
+    "3240220": ("mods", Path(__file__).resolve().parent / "gta-modded", Path.home() / ".local/bin/modloader"),
+}
+
 for g in games:
     g["mods"] = r2_profiles(g["name"])
+    hit = LAUNCHERS.get(g["appid"])
+    if hit and hit[1].is_file() and hit[2].is_file():
+        g["launcher"] = {"name": hit[0], "script": str(hit[1])}
 
 games.sort(key=lambda g: -g["lastPlayed"])
 print(json.dumps(games))
