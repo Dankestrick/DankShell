@@ -7,6 +7,7 @@
 //   apps:   kind: "apps" (one switch per plugin: pin it to the top row)
 //   hypr:   a Hyprland option instead of `key` (services/Hypr.qml)
 //   idle:   kind: "choice", Omarchy's screensaver/lock time (scripts/idle-set)
+//   look:   Omarchy's window look: solid, see-through or glass
 // Search in the Settings window matches every item's label too.
 
 var SECTIONS = [
@@ -46,8 +47,9 @@ var SECTIONS = [
     ] },
   { key: "windows", name: "Windows", icon: "select_window",
     sub: "Gaps, borders, rounding, see-through, blur and shadows. Changes show right away.",
-    words: "gaps border rounding corners opacity transparent blur shadow animations hyprland",
+    words: "gaps border rounding corners opacity transparent blur shadow animations hyprland glass glassy solid see-through look",
     items: [
+      { kind: "look", label: "Window look" },
       { hypr: "general:gaps_in", label: "Gap between windows", min: 0, max: 40, step: 1, unit: "px" },
       { hypr: "general:gaps_out", label: "Gap to the screen edge", min: 0, max: 60, step: 1, unit: "px" },
       { hypr: "general:border_size", label: "Border", min: 0, max: 8, step: 1, unit: "px" },

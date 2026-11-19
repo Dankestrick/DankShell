@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import "../../"
 
 // SettingsPage — draws one section from config/SettingsList.js.
@@ -34,6 +35,7 @@ Column {
         width: parent.width
         property var item_: modelData
         sourceComponent: modelData.kind === "apps" ? appsRows
+                       : modelData.kind === "look" ? lookRow
                        : modelData.kind === "choice" ? choiceRow
                        : modelData.kind === "switch" ? switchRow : slider
       }
@@ -136,6 +138,36 @@ Column {
       }
     }
   }
+  // Omarchy's window look (`omarchy hyprland window transparency`): solid,
+  // see-through, or glass (blur behind, terminals 65% see-through). Blur size
+  // and passes are the sliders further down.
+  Component {
+    id: lookRow
+    Column {
+      id: look
+      width: parent.width
+      spacing: 6
+      topPadding: 6
+      bottomPadding: 10
+      readonly property var vals: ["opaque", "transparent", "glassy"]
+      property string now: ""
+      Process { id: lookRead; running: true; command: ["omarchy", "hyprland", "window", "transparency"]; stdout: StdioCollector { onStreamFinished: look.now = text.trim() } }
+      Process { id: lookSet; onExited: lookRead.running = true }
+      Text { text: "Window look"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12 }
+      Chips {
+        model: ["Solid", "See-through", "Glass"]
+        current: look.vals.indexOf(look.now)
+        onPicked: (i) => { look.now = look.vals[i]; lookSet.command = ["omarchy", "hyprland", "window", "transparency", look.vals[i]]; lookSet.running = true }
+      }
+      Text {
+        width: parent.width; wrapMode: Text.WordWrap
+        text: look.now === "glassy" ? "Glass: what's behind see-through windows is blurred; terminals are 65% see-through. Blur size and passes are below."
+            : look.now === "opaque" ? "Solid: no window is see-through." : "See-through: Omarchy's default, without the blur."
+        color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
+      }
+    }
+  }
+
   property bool needsRestart: false
   Rectangle {
     visible: page.needsRestart
