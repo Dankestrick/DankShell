@@ -122,6 +122,7 @@ PanelWindow {
       anchors.fill: parent
       z: 100
       acceptedButtons: Qt.RightButton
+      onPressed: (m) => m.accepted = !Popouts.rightClickHere   // let a button's own right-click have it
       onClicked: Popouts.back()
     }
 

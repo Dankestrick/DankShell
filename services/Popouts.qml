@@ -10,6 +10,7 @@ Singleton {
   property string screen: ""   // monitor it's on
   property string mode: ""     // plugins, settings or device (Center sets it)
 
+  property bool rightClickHere: false // the mouse is on something with its own right-click (back steps aside)
   property bool fromIsland: false    // opened from the dashboard: "back" reopens it
   property string lastDevice: "game" // the Device button opens the last Device page you used
 

@@ -32,6 +32,17 @@ Column {
     else Quickshell.execDetached(["steam", "steam://rungameid/" + g.appid])
     Popouts.closeCenter()
   }
+  // What the big Play button does for a game: modded unless you picked Vanilla.
+  function isModded(g) { return (g.mods || []).length > 0 || !!g.launcher }
+  function modeOf(g) {
+    const m = (Settings.v.gameDefaults || {})[g.appid]
+    return m === "vanilla" || !isModded(g) ? "vanilla" : "mod"
+  }
+  function setDefault(g, mode) {
+    const d = Object.assign({}, Settings.v.gameDefaults || {}); d[g.appid] = mode
+    Settings.set("gameDefaults", d)
+  }
+  readonly property bool anyModded: games.some(g => isModded(g))
   function openModManager() { Quickshell.execDetached(["r2modman"]); Popouts.closeCenter() }
 
   // A small outlined button on a game card.
@@ -39,18 +50,28 @@ Column {
     id: cb
     property string label: ""
     property string icon: ""
+    property bool lit: false        // this is what the big Play button does
+    property bool canDefault: true  // right-click makes it the default
     signal clicked()
+    signal makeDefault()
     width: cbRow.implicitWidth + 18; height: 24; radius: 12
-    color: cbTap.containsMouse ? Theme.surface : "transparent"
-    border.width: 1; border.color: Theme.edge
+    color: lit ? Theme.accent : cbTap.containsMouse ? Theme.surface : "transparent"
+    border.width: lit ? 0 : 1; border.color: Theme.edge
+    Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
     Row {
       id: cbRow
       anchors.centerIn: parent
       spacing: 4
-      Icon { visible: cb.icon !== ""; name: cb.icon; font.pixelSize: 14; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
-      Text { text: cb.label; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+      Icon { visible: cb.icon !== ""; name: cb.icon; filled: cb.lit; font.pixelSize: 14; color: cb.lit ? Theme.surface : Theme.text; anchors.verticalCenter: parent.verticalCenter }
+      Text { text: cb.label; color: cb.lit ? Theme.surface : Theme.text; font.family: Theme.fontText; font.pixelSize: 10; font.weight: cb.lit ? Font.DemiBold : Font.Normal; anchors.verticalCenter: parent.verticalCenter }
     }
-    MouseArea { id: cbTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: cb.clicked() }
+    MouseArea {
+      id: cbTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+      acceptedButtons: Qt.LeftButton | Qt.RightButton
+      onContainsMouseChanged: Popouts.rightClickHere = containsMouse && cb.canDefault
+      Component.onDestruction: if (containsMouse) Popouts.rightClickHere = false
+      onClicked: (m) => { if (m.button === Qt.RightButton) { if (cb.canDefault) cb.makeDefault() } else cb.clicked() }
+    }
   }
   function ago(ts) {
     if (!ts) return "Never played"
@@ -96,7 +117,7 @@ Column {
 
   // ── Games ─────────────────────────────────────
   Text {
-    text: page.games.length ? "Your games" : "Looking for your Steam games…"
+    text: page.games.length ? "Your games  ·  the lit button is what Play does, right-click a button to change it" : "Looking for your Steam games…"
     color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase
   }
   Flow {
@@ -108,8 +129,9 @@ Column {
         id: g
         required property var modelData
         width: (page.width - 10) / 2
-        readonly property bool modded: (modelData.mods || []).length > 0 || !!modelData.launcher
-        height: width * 0.47 + (modded ? 80 : 46)
+        readonly property bool modded: page.isModded(modelData)
+        readonly property string mode: page.modeOf(modelData)
+        height: width * 0.47 + (page.anyModded ? 80 : 46)
         radius: Sizes.cardRadius
         color: gTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surfaceRaised
         clip: true
@@ -141,21 +163,33 @@ Column {
           width: parent.width - 64
           Text { width: parent.width; text: g.modelData.name; elide: Text.ElideRight; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
           Text {
-            text: (g.modelData.launcher ? "With " + g.modelData.launcher.name + "  ·  "
-                 : g.modded ? "Modded (" + g.modelData.mods[0].profile + ")  ·  " : "") + page.ago(g.modelData.lastPlayed)
+            text: page.ago(g.modelData.lastPlayed)
             color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
           }
         }
-        MouseArea { id: gTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: page.play(g.modelData, false) }
-        // Modded games: play without mods, or open r2modman to change them.
+        MouseArea { id: gTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: page.play(g.modelData, g.mode === "vanilla") }
+        // Launch buttons, the same on every card; the lit one is what Play does.
         Row {
-          visible: g.modded
+          visible: page.anyModded
           x: 12
           anchors.bottom: parent.bottom; anchors.bottomMargin: 10
           spacing: 6
-          CardButton { icon: "rocket_launch"; label: g.modelData.launcher ? g.modelData.launcher.name : "Modded"; onClicked: page.play(g.modelData, false) }
-          CardButton { visible: (g.modelData.mods || []).length > 0; icon: "extension"; label: "Mods"; onClicked: page.openModManager() }
-          CardButton { icon: "play_arrow"; label: "Vanilla"; onClicked: page.play(g.modelData, true) }
+          CardButton {
+            visible: g.modded
+            icon: "rocket_launch"
+            label: g.modelData.launcher ? g.modelData.launcher.name : "Modded"
+            lit: g.mode === "mod"
+            onClicked: page.play(g.modelData, false)
+            onMakeDefault: page.setDefault(g.modelData, "mod")
+          }
+          CardButton {
+            icon: "play_arrow"; label: "Vanilla"
+            lit: g.mode === "vanilla"
+            canDefault: g.modded
+            onClicked: page.play(g.modelData, true)
+            onMakeDefault: page.setDefault(g.modelData, "vanilla")
+          }
+          CardButton { visible: (g.modelData.mods || []).length > 0; icon: "extension"; label: "Mods"; canDefault: false; onClicked: page.openModManager() }
         }
       }
     }
