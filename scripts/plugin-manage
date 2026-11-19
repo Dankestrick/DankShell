@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""Plugin manager helper for DankShell's Plugins window (replaces Omaplug).
+Everything goes through Omarchy's own `omarchy plugin` commands.
+
+  plugin-manage catalog          marketplace plugins you can install (JSON list),
+                                 cached an hour in ~/.cache/dankshell/catalog.json
+  plugin-manage check            which installed git plugins have an update (JSON map)
+  plugin-manage run ACTION ARG   install <github-url> | update <id> | remove <id>,
+                                 meant to be started detached: it writes its progress
+                                 to ~/.cache/dankshell/plugin-job.json, so the job
+                                 survives the shell reloading plugins under it.
+"""
+import json, os, re, subprocess, sys, time, urllib.request
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+
+HOME = Path.home()
+PLUGINS = HOME / ".config/omarchy/plugins"
+CACHE = HOME / ".cache/dankshell"
+CATALOG_URL = "https://plugins.omarchy.org/catalog.json"
+JOB = CACHE / "plugin-job.json"
+ENV = dict(os.environ, OMARCHY_SHELL_IPC_TIMEOUT="20s", GIT_TERMINAL_PROMPT="0",
+           GIT_SSH_COMMAND=os.environ.get("GIT_SSH_COMMAND", "ssh -oBatchMode=yes"))
+ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
+GH_RE = re.compile(r"^https://github\.com/[A-Za-z0-9][A-Za-z0-9_.-]*/[A-Za-z0-9][A-Za-z0-9_.-]*?(\.git)?/?$")
+# Never removed from here: the shell itself.
+PROTECTED = {"io.github.dankestrick.dankshell"}
+
+
+def valid_id(s):
+    return bool(ID_RE.match(s or "")) and ".." not in s
+
+
+def github_url(entry):
+    for key in ("repo", "repositoryUrl", "sourceUrl", "source"):
+        u = entry.get(key)
+        if isinstance(u, str) and GH_RE.match(u.rstrip("/")) and ".." not in u:
+            return u.rstrip("/")
+    m = re.search(r"https://github\.com/[^\s`]+", str(entry.get("installCommand", "")))
+    if m and GH_RE.match(m.group(0)) and ".." not in m.group(0):
+        return m.group(0)
+    return ""
+
+
+def catalog():
+    CACHE.mkdir(parents=True, exist_ok=True)
+    cached = CACHE / "catalog.json"
+    raw = None
+    if cached.is_file() and time.time() - cached.stat().st_mtime < 3600:
+        try:
+            raw = json.loads(cached.read_text())
+        except ValueError:
+            raw = None
+    if raw is None:
+        req = urllib.request.Request(CATALOG_URL, headers={"User-Agent": "dankshell"})
+        with urllib.request.urlopen(req, timeout=30) as r:
+            raw = json.loads(r.read(96 * 1024 * 1024))
+        cached.write_text(json.dumps(raw))
+    out = []
+    for e in raw.get("plugins", []) if isinstance(raw, dict) else []:
+        if not isinstance(e, dict) or not valid_id(e.get("id")) or e.get("builtIn"):
+            continue
+        url = github_url(e)
+        if not url or e.get("installAvailable") is False:
+            continue
+        out.append({
+            "id": e["id"], "name": str(e.get("name") or e["id"])[:80],
+            "author": str(e.get("author") or "")[:80],
+            "description": str(e.get("description") or "")[:300],
+            "version": str(e.get("version") or "")[:32],
+            "category": str(e.get("category") or "")[:40],
+            "kind": str(e.get("kind") or "")[:40],
+            "verified": e.get("verificationStatus") == "verified",
+            "stars": int(e.get("stars") or 0) if str(e.get("stars") or "0").isdigit() else 0,
+            "url": url,
+        })
+    out.sort(key=lambda p: (not p["verified"], -p["stars"], p["name"].lower()))
+    print(json.dumps(out))
+
+
+def git(d, *args, timeout=25):
+    return subprocess.run(["git", "-C", str(d), *args], capture_output=True, text=True, timeout=timeout, env=ENV)
+
+
+def plugin_id(d):
+    try:
+        return json.loads((d / "manifest.json").read_text()).get("id") or d.name
+    except (OSError, ValueError):
+        return d.name
+
+
+def check_one(d):
+    r = check_dir(d)
+    return plugin_id(d), r
+
+
+def check_dir(d):
+    try:
+        if d.is_symlink() or not (d / ".git").is_dir():
+            return {"git": False}
+        if git(d, "status", "--porcelain").stdout.strip():
+            return {"git": True, "update": False, "note": "has local changes"}
+        if git(d, "fetch", "--quiet", "origin", "HEAD").returncode != 0:
+            return {"git": True, "update": False, "note": "couldn't reach its repo"}
+        head = git(d, "rev-parse", "HEAD").stdout.strip()
+        remote = git(d, "rev-parse", "FETCH_HEAD").stdout.strip()
+        behind = git(d, "merge-base", "--is-ancestor", "HEAD", "FETCH_HEAD").returncode == 0 and head != remote
+        return {"git": True, "update": behind, "head": head[:7], "remote": remote[:7]}
+    except (OSError, subprocess.SubprocessError) as e:
+        return {"git": False, "note": str(e)[:120]}
+
+
+def check():
+    dirs = [d for d in PLUGINS.iterdir() if d.is_dir() and not d.name.startswith(".")] if PLUGINS.is_dir() else []
+    # the folder name is the plugin id for git installs
+    with ThreadPoolExecutor(8) as pool:
+        print(json.dumps(dict(pool.map(check_one, dirs))))
+
+
+def write_job(**k):
+    CACHE.mkdir(parents=True, exist_ok=True)
+    tmp = JOB.with_suffix(".tmp")
+    tmp.write_text(json.dumps(k))
+    tmp.replace(JOB)
+
+
+def run(action, arg):
+    if action == "install":
+        if not GH_RE.match(arg.rstrip("/")) or ".." in arg:
+            write_job(state="failed", action=action, target=arg, message="Not a GitHub link", at=time.time()); return 1
+        cmd = ["omarchy", "plugin", "add", arg, "--enable", "--yes"]
+    elif action in ("update", "remove"):
+        if not valid_id(arg) or (action == "remove" and arg in PROTECTED):
+            write_job(state="failed", action=action, target=arg, message="Can't do that to this plugin", at=time.time()); return 1
+        cmd = ["omarchy", "plugin", action, arg, "--yes"]
+    else:
+        return 2
+    write_job(state="running", action=action, target=arg, message="", at=time.time())
+    try:
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=ENV, stdin=subprocess.DEVNULL)
+        # Omarchy's own last line (stdout) says what happened; git chatter goes to stderr.
+        out = [l for l in p.stdout.splitlines() if l.strip()]
+        err = [l for l in p.stderr.splitlines() if l.strip() and not l.startswith(("Cloning into", "remote:", "Receiving", "Resolving"))]
+        pick = (err or out) if p.returncode != 0 else (out or err)
+        msg = pick[-1][:300] if pick else ""
+        write_job(state="done" if p.returncode == 0 else "failed", action=action, target=arg, message=msg, at=time.time())
+        return p.returncode
+    except (OSError, subprocess.SubprocessError) as e:
+        write_job(state="failed", action=action, target=arg, message=str(e)[:300], at=time.time())
+        return 1
+
+
+if __name__ == "__main__":
+    a = sys.argv[1:]
+    if a[:1] == ["catalog"]:
+        catalog()
+    elif a[:1] == ["check"]:
+        check()
+    elif len(a) == 3 and a[0] == "run":
+        sys.exit(run(a[1], a[2]))
+    else:
+        print(__doc__, file=sys.stderr)
+        sys.exit(2)

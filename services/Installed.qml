@@ -50,12 +50,21 @@ Singleton {
     reloadLater.restart()
   }
   Timer { id: reloadLater; interval: 2500; onTriggered: inst.reload() }
+  property int retries: 0
+  Timer { id: retry; interval: 2000; onTriggered: inst.reload() }
+  onAllChanged: retries = 0
 
   Process {
     id: proc
     command: ["python3", "-I", inst.scriptPath]
     stdout: StdioCollector {
-      onStreamFinished: { try { inst.all = JSON.parse(text) || [] } catch (e) { console.warn("dankshell: plugin list unreadable:", e) } }
+      onStreamFinished: {
+        let list = null
+        try { list = JSON.parse(text) } catch (e) { console.warn("dankshell: plugin list unreadable:", e) }
+        // An empty list means Omarchy was busy (mid install/remove): keep the old one, ask again.
+        if (list && list.length) inst.all = list
+        else if (inst.retries++ < 5) retry.restart()
+      }
     }
   }
   Component.onCompleted: reload()

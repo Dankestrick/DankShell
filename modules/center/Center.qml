@@ -47,7 +47,11 @@ PanelWindow {
   readonly property var allPages: {
     const out = [{ key: "allplugins", mode: "plugins", group: "Plugins", name: "All plugins", icon: "apps",
                    sub: "Everything you have installed. Click one to use it.", words: "all grid overview",
-                   url: Qt.resolvedUrl("PluginGrid.qml") }]
+                   url: Qt.resolvedUrl("PluginGrid.qml") },
+                 { key: "getplugins", mode: "plugins", group: "Plugins", name: "Get plugins", icon: "add_circle",
+                   sub: "Install from the Omarchy marketplace, and update what you have.",
+                   words: "install marketplace update updates download get new add remove",
+                   url: Qt.resolvedUrl("GetPlugins.qml") }]
     for (const p of Installed.items)
       out.push({ key: p.key, mode: "plugins", group: p.group, name: p.name, icon: p.icon, sub: p.sub,
                  words: p.id + " " + p.description, plugin: p, pinnable: !!WidgetHost.item(p.key),
@@ -85,11 +89,15 @@ PanelWindow {
   onAllPagesChanged: resolveStart()   // the plugin list can arrive a moment later
   readonly property var current: allPages.find(p => p.key === Popouts.center) || null
   property string mode: "plugins"
-  onCurrentChanged: if (current) { mode = current.mode; if (wanted) Popouts.mode = mode; if (mode === "device") Popouts.lastDevice = current.key }
+  onCurrentChanged: {
+    if (current) { mode = current.mode; if (wanted) Popouts.mode = mode; if (mode === "device") Popouts.lastDevice = current.key }
+    else if (wanted) lostPage.restart()
+  }
   readonly property var pages: allPages.filter(p => p.mode === mode)
   readonly property var shown: {
     const q = search.text.trim().toLowerCase()
-    return q === "" ? pages : pages.filter(p => (p.name + " " + p.words + " " + p.group).toLowerCase().includes(q))
+    // the page you're on stays in the list while you type (Get plugins searches with the same box)
+    return q === "" ? pages : pages.filter(p => p.key === Popouts.center || (p.name + " " + p.words + " " + p.group).toLowerCase().includes(q))
   }
 
   function go(d) {
@@ -97,7 +105,21 @@ PanelWindow {
     if (shown.length) Popouts.center = shown[(i + d + shown.length) % shown.length].key
   }
 
-  onWantedChanged: if (wanted) { search.text = ""; search.forceActiveFocus(); Installed.reload() }
+  onWantedChanged: if (wanted) { search.text = ""; search.forceActiveFocus(); Installed.reload(); PluginManager.checkUpdates(false) }
+  // The page you were on went away (its plugin was removed): go to Get plugins.
+  Timer {
+    id: lostPage
+    interval: 1200
+    onTriggered: if (win.wanted && Popouts.center !== "" && Popouts.center.charAt(0) !== "@" && !win.current) Popouts.center = "getplugins"
+  }
+  Connections {
+    target: PluginManager
+    function onJobChanged() {
+      const j = PluginManager.job
+      if (j.action === "remove" && j.state === "done" && win.current && win.current.plugin && win.current.plugin.id === j.target)
+        Popouts.center = "getplugins"
+    }
+  }
 
   // ── The card ──────────────────────────────────
   Rectangle {
@@ -286,6 +308,64 @@ PanelWindow {
           height: 132
           radius: Sizes.cardRadius + 4
           color: Theme.surfaceRaised
+          // Update / Remove (your plugins only; Omarchy's built-ins can't be removed).
+          // Remove asks first, right here.
+          Row {
+            id: manage
+            readonly property var plug: win.current && win.current.plugin ? win.current.plugin : null
+            property bool confirming: false
+            visible: !!plug && PluginManager.canRemove(plug)
+            anchors.left: parent.left
+            anchors.top: parent.top
+            anchors.margins: 12
+            spacing: 6
+            Connections { target: win; function onCurrentChanged() { manage.confirming = false } }
+            component MBtn: Rectangle {
+              id: mb
+              property string label: ""
+              property string icon: ""
+              property color fill: Theme.surface
+              property color ink: Theme.text
+              signal clicked()
+              width: mbr.implicitWidth + 20; height: 28; radius: 14
+              opacity: enabled ? 1 : 0.4
+              color: mbTap.containsMouse && fill === Theme.surface ? Qt.lighter(Theme.surfaceRaised, 1.6) : fill
+              Row { id: mbr; anchors.centerIn: parent; spacing: 4
+                Icon { visible: mb.icon !== ""; name: mb.icon; color: mb.ink; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+                Text { text: mb.label; color: mb.ink; font.family: Theme.fontText; font.pixelSize: 11; anchors.verticalCenter: parent.verticalCenter }
+              }
+              MouseArea { id: mbTap; anchors.fill: parent; hoverEnabled: true; enabled: mb.enabled; cursorShape: Qt.PointingHandCursor; onClicked: mb.clicked() }
+            }
+            MBtn {
+              visible: !manage.confirming && !!manage.plug && PluginManager.hasUpdate(manage.plug.id)
+              icon: "download"; label: "Update"; fill: Theme.accent; ink: Theme.surface
+              enabled: !PluginManager.busy
+              onClicked: PluginManager.update(manage.plug.id)
+            }
+            MBtn {
+              visible: !manage.confirming
+              icon: "delete"; label: "Remove"
+              enabled: !PluginManager.busy
+              onClicked: manage.confirming = true
+            }
+            Text { visible: manage.confirming; anchors.verticalCenter: parent.verticalCenter; text: "Remove it for good?"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11 }
+            MBtn {
+              visible: manage.confirming
+              icon: "delete"; label: "Remove"; fill: Theme.urgent; ink: Theme.surface
+              onClicked: { PluginManager.remove(manage.plug.id); manage.confirming = false }
+            }
+            MBtn { visible: manage.confirming; label: "Cancel"; onClicked: manage.confirming = false }
+          }
+          // What the last install/update/remove did.
+          Text {
+            visible: PluginManager.jobText !== "" && !!manage.plug && (PluginManager.job.target === manage.plug.id || PluginManager.busy)
+            anchors.left: parent.left; anchors.bottom: parent.bottom; anchors.margins: 12
+            width: parent.width / 2 - 40; elide: Text.ElideRight
+            text: PluginManager.jobText
+            color: PluginManager.job.state === "failed" ? Theme.urgent : Theme.textDim
+            font.family: Theme.fontText; font.pixelSize: 10
+          }
+
           // Pin to the island's top row (plugins only).
           Rectangle {
             visible: !!(win.current && win.current.pinnable)

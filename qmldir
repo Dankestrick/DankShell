@@ -26,6 +26,7 @@ singleton Webcam 1.0 services/Webcam.qml
 singleton Docker 1.0 services/Docker.qml
 singleton Glance 1.0 services/Glance.qml
 singleton Lyrics 1.0 services/Lyrics.qml
+singleton PluginManager 1.0 services/PluginManager.qml
 
 # components/ — small reusable pieces
 Pill 1.0 components/Pill.qml
