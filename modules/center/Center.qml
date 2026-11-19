@@ -54,7 +54,7 @@ PanelWindow {
                  url: p.use === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
                                        : Qt.resolvedUrl("PluginPage.qml") })
     out.push({ key: "notifications", mode: "device", group: "Device", name: "Notifications", icon: "notifications",
-               sub: "Click one to read it all, × to clear it.",
+               sub: "Click to read it all, click again to clear it. × clears it right away.",
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
     out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
                sub: "Game Mode, your controller, and your Steam games.",

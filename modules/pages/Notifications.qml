@@ -2,7 +2,7 @@ import QtQuick
 import "../../"
 
 // Notifications — every recent notification, newest first. Click one to
-// read all of it, × to clear it, "Clear all" for everything.
+// read all of it, click again to clear it; × clears it right away.
 Column {
   id: page
   property bool showing: false
@@ -55,7 +55,12 @@ Column {
       Behavior on height { NumberAnimation { duration: Motion.ms(Motion.move); easing.type: Easing.OutCubic } }
       clip: true
 
-      MouseArea { id: tap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: page.open = card.expanded ? "" : card.modelData.key }
+      // Click to read all of it; click again (or one with nothing more) clears it.
+      readonly property bool hasMore: bodyText.length > 90 || bodyText.indexOf("\n") >= 0
+      MouseArea {
+        id: tap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+        onClicked: { if (!card.expanded && card.hasMore) page.open = card.modelData.key; else Notifications.dismiss(card.modelData.key) }
+      }
 
       Rectangle {
         id: badge

@@ -17,14 +17,17 @@ Singleton {
   property var history: []
   property var live: []
 
+  // What you cleared: everything up to clearedAt, plus single ones by key.
+  property real clearedAt: 0
+  property var dismissed: []
+
   // Newest first, minus anything cleared.
   readonly property var shown: {
     const seen = {}, out = []
-    const cleared = state.clearedAt, gone = state.dismissed
     for (const e of live.concat(history)) {
       if (!e || !e.key || seen[e.key]) continue
       seen[e.key] = true
-      if ((e.ts || 0) <= cleared || gone.indexOf(e.key) >= 0) continue
+      if ((e.ts || 0) <= clearedAt || dismissed.indexOf(e.key) >= 0) continue
       out.push(e)
     }
     return out.sort((a, b) => (b.ts || 0) - (a.ts || 0))
@@ -32,12 +35,14 @@ Singleton {
   readonly property int count: shown.length
 
   function dismiss(key) {
-    state.dismissed = state.dismissed.filter(k => shown.some(e => e.key === k)).concat([key])
+    // Keep only keys Omarchy still has, so the list doesn't grow forever.
+    const known = live.concat(history).map(e => e && e.key)
+    dismissed = dismissed.filter(k => k !== key && known.indexOf(k) >= 0).concat([key])
     save()
   }
   function clearAll() {
-    state.clearedAt = Date.now() / 1000
-    state.dismissed = []
+    clearedAt = Date.now() / 1000
+    dismissed = []
     save()
     Quickshell.execDetached(["omarchy-shell", "notifications", "dismissAll"])
   }
@@ -67,17 +72,23 @@ Singleton {
     onLoaded: n.live = n.parse(text())
   }
 
-  // ── What you cleared ──────────────────────────
+  // ── Saving what you cleared ───────────────────
   function save() { mkdir.running = true }
-  Process { id: mkdir; command: ["mkdir", "-p", n.myDir]; onExited: stateFile.writeAdapter() }
+  Process {
+    id: mkdir
+    command: ["mkdir", "-p", n.myDir]
+    onExited: stateFile.setText(JSON.stringify({ clearedAt: n.clearedAt, dismissed: n.dismissed }) + "\n")
+  }
   FileView {
     id: stateFile
     path: n.myDir + "/notifications.json"
     printErrors: false
-    JsonAdapter {
-      id: state
-      property real clearedAt: 0
-      property var dismissed: []
+    onLoaded: {
+      try {
+        const d = JSON.parse(text())
+        n.clearedAt = Number(d.clearedAt) || 0
+        n.dismissed = Array.isArray(d.dismissed) ? d.dismissed : []
+      } catch (e) { }
     }
   }
 
