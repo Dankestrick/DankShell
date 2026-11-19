@@ -134,6 +134,14 @@ Column {
     target: page.card; property: "y"; when: !!page.card && WidgetHost.popoutOpen; restoreMode: Binding.RestoreNone
     value: page.winTop
   }
+  // DankShell's card look instead of Omarchy's bordered box: raised gray,
+  // DankShell's corner, no border (the island does the same, see Island.qml).
+  Binding { target: page.card; property: "color"; value: Theme.surfaceRaised; when: !!page.card && WidgetHost.popoutOpen; restoreMode: Binding.RestoreNone }
+  Binding { target: page.card; property: "radius"; value: Sizes.cardRadius + 4; when: !!page.card && WidgetHost.popoutOpen; restoreMode: Binding.RestoreNone }
+  Binding {
+    target: page.card; property: "borderSpec"; when: !!page.card && WidgetHost.popoutOpen; restoreMode: Binding.RestoreNone
+    value: ({ color: "transparent", widths: { top: 0, right: 0, bottom: 0, left: 0 }, gradient: { colors: [], angle: 0, enabled: false } })
+  }
 
   component PillButton: Rectangle {
     id: pb
