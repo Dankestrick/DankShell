@@ -30,7 +30,7 @@ PanelWindow {
 
   anchors { top: true; left: true; right: true }
   color: "transparent"
-  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight, hostedCard ? dashboard.headerHeight + hostedCard.height + 20 : 0) + 24  // room to grow into
+  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight + 180, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight, hostedCard ? dashboard.headerHeight + hostedCard.height + 20 : 0) + 24  // room to grow into
   exclusiveZone: hidden ? 0 : Sizes.reserved
   WlrLayershell.namespace: "dankshell-island"
   WlrLayershell.layer: WlrLayer.Top
@@ -131,7 +131,7 @@ PanelWindow {
           : island.isThemes ? themeSwitcher.contentHeight
           : island.isOpen && island.hostedCard ? dashboard.headerHeight + island.hostedCard.height + Sizes.dashPadding / 2
           : island.isOpen ? Math.max(Sizes.dashHeight, dashboard.contentHeight)
-          : island.state === "hover" ? Sizes.hoverHeight
+          : island.state === "hover" ? Sizes.hoverHeight + hoverCard.extra
           : island.state === "bubble" ? Sizes.barHeight + Sizes.hoverLift
           : Sizes.barHeight
     radius: island.held ? Sizes.radiusExpanded
@@ -154,8 +154,10 @@ PanelWindow {
     }
 
     Hover {
+      id: hoverCard
+      showing: island.state === "hover"
       width: Sizes.hoverWidth
-      height: Sizes.hoverHeight
+      height: Sizes.hoverHeight + extra
       anchors.horizontalCenter: parent.horizontalCenter
       anchors.top: parent.top
       screenName: island.modelData.name
