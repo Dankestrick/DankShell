@@ -30,7 +30,7 @@ PanelWindow {
 
   anchors { top: true; left: true; right: true }
   color: "transparent"
-  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight) + 24  // room to grow into
+  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight, hostedCard ? dashboard.headerHeight + hostedCard.height + 20 : 0) + 24  // room to grow into
   exclusiveZone: hidden ? 0 : Sizes.reserved
   WlrLayershell.namespace: "dankshell-island"
   WlrLayershell.layer: WlrLayer.Top
@@ -48,7 +48,26 @@ PanelWindow {
   Component.onCompleted: WidgetHost.setDrop(modelData.name, dropY)
 
   // The dashboard grows wider when the top row needs the room.
-  readonly property int dashWidth: Math.max(Sizes.dashWidth, dashboard.neededWidth)
+  readonly property int dashWidth: Math.max(Sizes.dashWidth, dashboard.neededWidth, hostedCard ? hostedCard.width + Sizes.dashPadding * 2 : 0)
+
+  // ── A pinned widget's dropdown, worn as an island page ──
+  // When one of your top-row widgets (Agents, Network, VPN...) opens its
+  // dropdown, the island grows to fit it and the dropdown's own box turns
+  // see-through and sits inside the island under the top row, so it looks
+  // like the island's own page, the same as Pandora's.
+  property var hostedCard: null
+  readonly property var hostedWidget: isOpen && WidgetHost.popoutOpen
+    ? WidgetHost.live.find(w => w.moduleName === WidgetHost.activeOwnerId && w.QsWindow.window === island && w.visible) || null : null
+  onHostedWidgetChanged: { hostedCard = null; if (hostedWidget) findCard.restart() }
+  Timer { id: findCard; interval: 40; onTriggered: { island.hostedCard = WidgetHost.cardOf(island.hostedWidget); if (!island.hostedCard && island.hostedWidget) findCard.restart() } }
+  readonly property int hostedTop: Sizes.gapFromEdge + dashboard.headerHeight
+  Binding { target: island.hostedCard; property: "x"; value: island.hostedCard ? Math.round((island.width - island.hostedCard.width) / 2) : 0; when: !!island.hostedCard; restoreMode: Binding.RestoreNone }
+  Binding { target: island.hostedCard; property: "y"; value: island.hostedTop; when: !!island.hostedCard; restoreMode: Binding.RestoreNone }
+  Binding { target: island.hostedCard; property: "color"; value: "transparent"; when: !!island.hostedCard; restoreMode: Binding.RestoreNone }
+  Binding {
+    target: island.hostedCard; property: "borderSpec"; when: !!island.hostedCard; restoreMode: Binding.RestoreNone
+    value: ({ color: "transparent", widths: { top: 0, right: 0, bottom: 0, left: 0 }, gradient: { colors: [], angle: 0, enabled: false } })
+  }
 
   // A pinned page opens in the island; anything else in the Center window.
   function showPage(key) {
@@ -106,6 +125,7 @@ PanelWindow {
          : closedWidth
     height: island.isWalls ? wallSwitcher.contentHeight
           : island.isThemes ? themeSwitcher.contentHeight
+          : island.isOpen && island.hostedCard ? dashboard.headerHeight + island.hostedCard.height + Sizes.dashPadding / 2
           : island.isOpen ? Math.max(Sizes.dashHeight, dashboard.contentHeight)
           : island.state === "hover" ? Sizes.hoverHeight
           : island.state === "bubble" ? Sizes.barHeight + Sizes.hoverLift
@@ -141,6 +161,7 @@ PanelWindow {
     }
 
     Dashboard {
+      hosting: !!island.hostedCard
       id: dashboard
       onCloseRequested: island.state = "closed"
       onThemesRequested: island.showThemes()

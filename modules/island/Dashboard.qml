@@ -16,6 +16,7 @@ Item {
   id: dash
 
   readonly property int headerHeight: 68
+  property bool hosting: false   // a widget's dropdown is showing in our place (Island.qml)
   property string page: "home"
 
   signal closeRequested()
@@ -127,6 +128,8 @@ Item {
   // Each page slides and fades in; the dashboard height follows the page.
   Item {
     id: pageArea
+    opacity: dash.hosting ? 0 : 1
+    Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.margins: Sizes.dashPadding
