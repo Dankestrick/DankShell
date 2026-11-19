@@ -63,7 +63,7 @@ Column {
         color: padTap.containsMouse ? Theme.surface : "transparent"
         border.width: 1; border.color: Theme.edge
         Text { id: padText; anchors.centerIn: parent; text: "Controller settings"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11 }
-        MouseArea { id: padTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Popouts.center = "atoslins.dualsense" }
+        MouseArea { id: padTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: Popouts.center = "dualsense" }
       }
     }
   }

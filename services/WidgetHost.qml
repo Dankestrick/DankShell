@@ -45,7 +45,7 @@ Singleton {
   readonly property var catalog: {
     const out = Plugins.active().map(p => ({ key: p.key, name: p.name, icon: p.icon, sub: p.sub || "", kind: "page" }))
     for (const e of entries) {
-      if (!componentFor(e.id)) continue
+      if (!componentFor(e.id) || Plugins.byId(e.id)) continue   // has its own page
       out.push({ key: e.id, name: nameFor(e.id), icon: Widgets.ICONS[e.id] || "extension",
                  sub: Widgets.ABOUT[e.id] || "", kind: "widget", entry: e })
     }

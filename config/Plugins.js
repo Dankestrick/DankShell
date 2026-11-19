@@ -11,6 +11,9 @@
 // icon:  Material Symbols name for the tab
 // model: for a plugin with no service, one of its own files run as one (optional)
 // sub:   one line about it, under its name in the Center window
+// stayOn: true = Omarchy keeps running the plugin too (DualSense: its widget
+//         does battery alerts and re-applies your profile); `dankshell on`
+//         leaves it alone
 // off:   true = leave it on Omarchy and skip its page (optional)
 
 var LIST = [
@@ -19,6 +22,7 @@ var LIST = [
   { id: "io.github.dankestrick.omagravastar", key: "gravastar", name: "Gravastar", icon: "mouse", sub: "Gravastar mouse: battery, DPI and lights." },
   { id: "io.github.dankestrick.omaiphone",   key: "iphone",    name: "iPhone",    icon: "smartphone", sub: "Your iPhone: battery, files and notifications." },
   { id: "io.github.dankestrick.omajournal",  key: "journal",   name: "Journal",   icon: "edit_note", sub: "Today's note in the Dank Vault." },
+  { id: "atoslins.dualsense",               key: "dualsense", name: "DualSense", icon: "sports_esports", sub: "Lightbar, triggers, rumble, mic and a live input test.", stayOn: true },
   { id: "io.github.dankestrick.omagrokbots", key: "grokbots",  name: "Grok Bots", icon: "smart_toy", model: "Inbox.qml", sub: "Messages from your Grok bots." }
 ]
 

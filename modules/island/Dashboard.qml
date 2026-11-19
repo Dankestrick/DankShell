@@ -32,7 +32,7 @@ Item {
     .concat(pins.filter(p => p.kind === "page").map(p => ({ key: p.key, file: p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml" })))
   // Widgets that aren't pinned still run here, out of sight, so the Plugins
   // tab can open their dropdown.
-  readonly property var stashed: WidgetHost.catalog.filter(c => c.kind === "widget" && Settings.v.pinned.indexOf(c.key) < 0)
+  readonly property var stashed: WidgetHost.entries.filter(e => !!WidgetHost.componentFor(e.id) && Settings.v.pinned.indexOf(e.id) < 0).map(e => ({ entry: e }))
 
   function openPage(key) {
     if (pages.some(p => p.key === key)) page = (page === key ? "home" : key)

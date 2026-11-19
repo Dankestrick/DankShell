@@ -20,6 +20,7 @@ Singleton {
       if (s.unread > 0) return { text: s.unread + " new", alert: true }
       return { text: s.battery !== null && s.battery !== undefined ? s.battery + "%" : "", alert: false }
     }
+    if (key === "dualsense") key = "atoslins.dualsense"
     if (key === "pandora") return { text: s && s.playing ? "Playing" : "", alert: false }
     if (key === "grokbots") return { text: s && s.unreadCount > 0 ? s.unreadCount + " new" : "", alert: !!s && s.unreadCount > 0 }
     // A bar widget: what its own button reads, if it's words or numbers.

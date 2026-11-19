@@ -11,6 +11,7 @@ Item {
   property bool live: false
   property bool iconClick: false
   signal moved(real value)
+  signal released(real value)   // let go (also sent when `live`)
   signal iconClicked()
 
   width: parent ? parent.width : 300
@@ -51,7 +52,7 @@ Item {
       function at(x) { return Math.max(0, Math.min(1, x / width)) }
       onPressed: (m) => { row.dragValue = at(m.x); if (row.live) row.moved(row.dragValue) }
       onPositionChanged: (m) => { if (pressed) { row.dragValue = at(m.x); if (row.live) row.moved(row.dragValue) } }
-      onReleased: if (!row.live) row.moved(row.dragValue)
+      onReleased: { if (!row.live) row.moved(row.dragValue); row.released(row.dragValue) }
       // The scroll wheel scrolls the page; only a click or drag changes the value.
       onWheel: (w) => w.accepted = false
     }

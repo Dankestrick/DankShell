@@ -23,8 +23,8 @@ die() { echo "dankshell: $*" >&2; exit 1; }
 command -v jq >/dev/null || die "jq is required"
 [[ -f $shell_json ]] || die "no $shell_json"
 
-# Plugin ids from config/Plugins.js, skipping `off: true` ones.
-mapfile -t ids < <(grep -E 'id: "[^"]+"' "$repo_dir/config/Plugins.js" | grep -v 'off: true' | grep -oE 'id: "[^"]+"' | sed -E 's/id: "(.*)"/\1/')
+# Plugin ids from config/Plugins.js, skipping `off: true` and `stayOn: true` ones.
+mapfile -t ids < <(grep -E 'id: "[^"]+"' "$repo_dir/config/Plugins.js" | grep -v -e 'off: true' -e 'stayOn: true' | grep -oE 'id: "[^"]+"' | sed -E 's/id: "(.*)"/\1/')
 ids_json="$(printf '%s\n' "${ids[@]}" | jq -R . | jq -s 'map(select(. != ""))')"
 
 write_json() {  # jq filter + args: rewrite shell.json safely
