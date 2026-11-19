@@ -80,6 +80,9 @@ PanelWindow {
                  url: Qt.resolvedUrl("../settings/SettingsPage.qml"), section: sec,
                  // search finds single settings too
                  words: sec.words + " " + sec.items.map(i => i.label || "").join(" ") })
+    out.push({ key: "keys", mode: "settings", group: "Settings", name: "Keys", icon: "keyboard",
+               sub: "Every keyboard shortcut you have. Type in the search box to find one.",
+               url: Qt.resolvedUrl("../settings/Keys.qml"), words: "keys keyboard shortcuts keybindings bindings hotkeys super" })
     return out
   }
   // "@plugins" / "@settings" open a window on its first page.
