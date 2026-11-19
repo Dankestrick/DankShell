@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# docker-open NAME URL WORKSPACE — open a container's web page as its own app
+# window on WORKSPACE, or focus that window if it's already open.
+# Remembers which window belongs to which container in
+# ~/.cache/dankshell/docker-windows.json.
+set -u
+name="$1"; url="$2"; ws="$3"
+state="$HOME/.cache/dankshell/docker-windows.json"
+mkdir -p "${state%/*}"
+[ -f "$state" ] || echo '{}' > "$state"
+
+addrs() { hyprctl clients -j | python3 -I -c 'import json,sys; print("\n".join(c["address"] for c in json.load(sys.stdin)))'; }
+
+# Already open: focus it.
+old=$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1])).get(sys.argv[2], ""))' "$state" "$name")
+if [ -n "$old" ] && addrs | grep -qx "$old"; then
+  hyprctl dispatch "hl.dsp.focus({ window = \"address:$old\" })" >/dev/null
+  exit 0
+fi
+
+before=$(addrs)
+omarchy-launch-webapp "$url" >/dev/null 2>&1 &
+for _ in $(seq 1 60); do
+  sleep 0.25
+  new=$(addrs | grep -vxF "$before" | head -1)
+  [ -n "$new" ] && break
+done
+[ -n "${new:-}" ] || { notify-send "Docker" "$name's page didn't open"; exit 1; }
+
+hyprctl dispatch "hl.dsp.window.move({ workspace = \"$ws\", follow = true, window = \"address:$new\" })" >/dev/null
+python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d[sys.argv[2]]=sys.argv[3]; json.dump(d, open(p,"w"))' "$state" "$name" "$new"

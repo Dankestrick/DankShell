@@ -2,12 +2,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import "../"
+import "../config/Docker.js" as Spaces
 
 // MonitorPills — one pill per monitor, laid out like the desk (left to right,
 // main row first, the one above after). The pill for the monitor the mouse is
 // on is big and lit. Each pill holds dots for that monitor's workspaces:
 // click a dot to go there. Hover a pill to peek at its window (Hover.qml shows
 // the picture); drag a pill onto another pill to move that window there.
+// While you drag over a pill it spreads out into that monitor's workspaces
+// (1 · 4 · 7 on the main) so you can drop the window on the one you want.
 Item {
   id: root
 
@@ -15,6 +18,7 @@ Item {
   property string hovered: ""          // monitor whose pill the mouse is on (lingers a moment)
   property string dragFrom: ""         // monitor whose window is being dragged
   property string dropOn: ""           // pill under the dragged window
+  property int dropWs: 0               // workspace slot under it (0 = the one showing)
   property point dragPos: Qt.point(0, 0)
   readonly property string peekMonitor: dragFrom || hovered
 
@@ -28,7 +32,7 @@ Item {
   property int rev: 0
   function refresh() { Hyprland.refreshMonitors(); Hyprland.refreshToplevels(); bump.restart() }
   Timer { id: bump; interval: 120; onTriggered: root.rev++ }
-  onActiveChanged: if (active) refresh(); else { hovered = ""; dragFrom = ""; dropOn = "" }
+  onActiveChanged: if (active) refresh(); else { hovered = ""; dragFrom = ""; dropOn = ""; dropWs = 0 }
   Connections {
     target: Hyprland
     enabled: root.active
@@ -68,10 +72,10 @@ Item {
   }
   // Drop: the window goes to the regular workspace showing on the other
   // monitor (never into a special/scratchpad one), and focus stays put.
-  function moveWindow(from, to) {
+  function moveWindow(from, to, wsPicked) {
     const t = windowOn(from), m = monitor(to)
     if (!t || !m) return
-    const ws = shownWorkspace(m, false)
+    const ws = wsPicked || shownWorkspace(m, false)
     if (!ws) return
     Quickshell.execDetached(["hyprctl", "dispatch",
       'hl.dsp.window.move({ workspace = "' + ws + '", follow = false, window = "address:' + addressOf(t) + '" })'])
@@ -81,6 +85,14 @@ Item {
     if (y < -24 || y > root.height + 24) return ""
     const c = row.childAt(x - row.x, row.height / 2)
     return c && c.monitorName ? c.monitorName : ""
+  }
+  // The workspace slot under x on a spread-out pill.
+  function slotAt(x) {
+    const c = row.childAt(x - row.x, row.height / 2)
+    if (!c || !c.slotRow) return 0
+    const p = root.mapToItem(c.slotRow, x, 0)
+    const s = c.slotRow.childAt(p.x, c.slotRow.height / 2)
+    return s && s.wsId ? s.wsId : 0
   }
 
   // Moving between pills shouldn't close the peek for a blink.
@@ -99,28 +111,55 @@ Item {
         required property var modelData
         readonly property string monitorName: modelData.name
         readonly property bool here: Hyprland.focusedMonitor !== null && Hyprland.focusedMonitor.name === monitorName
-        readonly property bool target: root.dragFrom !== "" && root.dragFrom !== monitorName && root.dropOn === monitorName
+        readonly property bool target: root.dragFrom !== "" && root.dropOn === monitorName
+        readonly property var plan: Spaces.SPACES[monitorName] || []
+        readonly property alias slotRow: slots
         readonly property bool source: root.dragFrom === monitorName
         readonly property var spaces: Hyprland.workspaces.values
           .filter(w => w.id > 0 && w.monitor && w.monitor.name === pill.monitorName)
           .sort((a, b) => a.id - b.id)
 
         anchors.verticalCenter: parent.verticalCenter
-        height: here ? 18 : 12
-        width: dots.implicitWidth + (here ? 18 : 12)
+        height: target ? 22 : here ? 18 : 12
+        width: (target ? slots.implicitWidth : dots.implicitWidth) + (target ? 10 : here ? 18 : 12)
         radius: height / 2
         color: here ? Theme.accent : Theme.surfaceRaised
         border.width: target || (root.hovered === monitorName && !here) ? 2 : 0
         border.color: Theme.accent
-        opacity: source ? 0.5 : 1
-        scale: target ? 1.15 : 1
+        opacity: source && !target ? 0.5 : 1
         Behavior on width { NumberAnimation { duration: Motion.ms(Motion.hover * 2); easing.type: Easing.OutCubic } }
         Behavior on height { NumberAnimation { duration: Motion.ms(Motion.hover * 2); easing.type: Easing.OutCubic } }
         Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
         Behavior on scale { NumberAnimation { duration: Motion.ms(Motion.hover); easing.type: Easing.OutBack } }
 
+        // While dragging over it: one numbered slot per workspace of this monitor.
+        Row {
+          id: slots
+          anchors.centerIn: parent
+          spacing: 3
+          visible: pill.target
+          Repeater {
+            model: pill.target ? pill.plan : []
+            Rectangle {
+              required property var modelData
+              readonly property int wsId: modelData
+              readonly property bool under: root.dropWs === modelData
+              readonly property bool showing: pill.modelData.activeWorkspace !== null && pill.modelData.activeWorkspace.id === modelData
+              width: 22; height: 16; radius: 8
+              color: under ? Theme.text : showing ? Qt.rgba(Theme.text.r, Theme.text.g, Theme.text.b, 0.25) : "transparent"
+              Text {
+                anchors.centerIn: parent
+                text: modelData
+                color: parent.under ? Theme.surface : pill.here ? Theme.surface : Theme.text
+                font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold
+              }
+            }
+          }
+        }
+
         Row {
           id: dots
+          visible: !pill.target
           anchors.centerIn: parent
           spacing: 4
           Repeater {
@@ -160,11 +199,14 @@ Item {
             if (dragged) {
               root.dragPos = mapToItem(root, m.x, m.y)
               root.dropOn = root.pillAt(root.dragPos.x, root.dragPos.y)
+              root.dropWs = root.dropOn ? root.slotAt(root.dragPos.x) : 0
             }
           }
           onReleased: {
-            if (dragged && root.dropOn && root.dropOn !== root.dragFrom) root.moveWindow(root.dragFrom, root.dropOn)
-            root.dragFrom = ""; root.dropOn = ""
+            // Drop on another monitor, or on a different workspace of this one.
+            if (dragged && root.dropOn && (root.dropOn !== root.dragFrom || root.dropWs))
+              root.moveWindow(root.dragFrom, root.dropOn, root.dropWs)
+            root.dragFrom = ""; root.dropOn = ""; root.dropWs = 0
           }
           // A click (no drag) on a dot goes to that workspace.
           onClicked: (m) => {

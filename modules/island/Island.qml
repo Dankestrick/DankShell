@@ -30,7 +30,7 @@ PanelWindow {
 
   anchors { top: true; left: true; right: true }
   color: "transparent"
-  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight + 180, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight, hostedCard ? dashboard.headerHeight + hostedCard.height + 20 : 0) + 24  // room to grow into
+  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight + 300, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight, hostedCard ? dashboard.headerHeight + hostedCard.height + 20 : 0) + 24  // room to grow into
   exclusiveZone: hidden ? 0 : Sizes.reserved
   WlrLayershell.namespace: "dankshell-island"
   WlrLayershell.layer: WlrLayer.Top
