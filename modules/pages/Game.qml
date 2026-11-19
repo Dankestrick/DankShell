@@ -21,10 +21,34 @@ Column {
     stdout: StdioCollector { onStreamFinished: { try { page.games = JSON.parse(text) || [] } catch (e) { } } }
   }
 
-  function play(g) {
+  // Games with an r2modman profile play modded (the same launch r2modman's
+  // "Start modded" does); `vanilla` skips the mods.
+  function play(g, vanilla) {
     if (Settings.v.gameModeOnPlay && !Toggles.gameMode) Toggles.toggleGameMode()
-    Quickshell.execDetached(["steam", "steam://rungameid/" + g.appid])
+    const mods = g.mods || []
+    if (!vanilla && mods.length) Quickshell.execDetached(["steam", "-applaunch", g.appid].concat(mods[0].args))
+    else Quickshell.execDetached(["steam", "steam://rungameid/" + g.appid])
     Popouts.closeCenter()
+  }
+  function openModManager() { Quickshell.execDetached(["r2modman"]); Popouts.closeCenter() }
+
+  // A small outlined button on a game card.
+  component CardButton: Rectangle {
+    id: cb
+    property string label: ""
+    property string icon: ""
+    signal clicked()
+    width: cbRow.implicitWidth + 18; height: 24; radius: 12
+    color: cbTap.containsMouse ? Theme.surface : "transparent"
+    border.width: 1; border.color: Theme.edge
+    Row {
+      id: cbRow
+      anchors.centerIn: parent
+      spacing: 4
+      Icon { visible: cb.icon !== ""; name: cb.icon; font.pixelSize: 14; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
+      Text { text: cb.label; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 10; anchors.verticalCenter: parent.verticalCenter }
+    }
+    MouseArea { id: cbTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: cb.clicked() }
   }
   function ago(ts) {
     if (!ts) return "Never played"
@@ -82,7 +106,8 @@ Column {
         id: g
         required property var modelData
         width: (page.width - 10) / 2
-        height: width * 0.47 + 46
+        readonly property bool modded: (modelData.mods || []).length > 0
+        height: width * 0.47 + (modded ? 80 : 46)
         radius: Sizes.cardRadius
         color: gTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surfaceRaised
         clip: true
@@ -113,9 +138,21 @@ Column {
           y: art.height + 8
           width: parent.width - 64
           Text { width: parent.width; text: g.modelData.name; elide: Text.ElideRight; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
-          Text { text: page.ago(g.modelData.lastPlayed); color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10 }
+          Text {
+            text: (g.modded ? "Modded (" + g.modelData.mods[0].profile + ")  ·  " : "") + page.ago(g.modelData.lastPlayed)
+            color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
+          }
         }
-        MouseArea { id: gTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: page.play(g.modelData) }
+        MouseArea { id: gTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: page.play(g.modelData, false) }
+        // Modded games: play without mods, or open r2modman to change them.
+        Row {
+          visible: g.modded
+          x: 12
+          anchors.bottom: parent.bottom; anchors.bottomMargin: 10
+          spacing: 6
+          CardButton { icon: "extension"; label: "r2modman"; onClicked: page.openModManager() }
+          CardButton { icon: "play_arrow"; label: "Vanilla"; onClicked: page.play(g.modelData, true) }
+        }
       }
     }
   }
