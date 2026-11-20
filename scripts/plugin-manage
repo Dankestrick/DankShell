@@ -15,7 +15,7 @@ Everything goes through Omarchy's own `omarchy plugin` commands.
                                  plugin:<id> or git:<path from gitcheck>. Same job file.
 
 Git installs: every git checkout in ~/GitDank/CloneWars plus ~/ComfyUI. Your own
-repos (Dankestrick on GitHub/GitLab) are left out. ~/.config/dankshell/git-installs.json
+repos (Dankestrick on GitHub/GitLab) and plugin clones (a manifest.json) are left out. ~/.config/dankshell/git-installs.json
 can add more: {"add": ["/path/to/checkout"], "skip": ["folder-name"]}.
 """
 import json, os, re, subprocess, sys, time, urllib.request
@@ -145,6 +145,10 @@ def git_dirs():
     out = []
     for d in found:
         if d.name in skip or not (d / ".git").is_dir() or d in out:
+            continue
+        # A plugin clone: installed plugins update in the Plugins list, and a
+        # clone of one you removed (omaplug, omacale) is only a kept copy.
+        if (d / "manifest.json").is_file():
             continue
         url = git(d, "remote", "get-url", "origin").stdout.strip()
         if url and not OWN.search(url):
