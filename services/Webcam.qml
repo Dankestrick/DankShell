@@ -170,7 +170,7 @@ Singleton {
   Timer { id: again; interval: 5000; onTriggered: udev.running = true }
   Timer { id: settle; interval: 1500; onTriggered: cam.refresh() }   // the camera needs a moment after plug-in
 
-  // ── Open big: mpv window (the page preview lets go of the camera meanwhile) ──
+  // ── Open big: mpv fullscreen (Esc leaves fullscreen, q closes; the page preview lets go of the camera meanwhile) ──
   property bool wantBig: false
   readonly property bool bigOpen: wantBig || big.running
   function openBig() {
@@ -183,7 +183,7 @@ Singleton {
   function launchBig() {
     if (!present) { wantBig = false; return }
     bigCheck.restart()
-    big.command = ["mpv", "--title=Camera", "--profile=low-latency", "--untimed", "--no-osc",
+    big.command = ["mpv", "--title=Camera", "--fs", "--profile=low-latency", "--untimed", "--no-osc",
                    "--demuxer-lavf-format=video4linux2",
                    "--demuxer-lavf-o=video_size=" + bigSize + ",input_format=mjpeg",
                    "av://v4l2:" + device]
