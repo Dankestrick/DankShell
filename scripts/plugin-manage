@@ -182,7 +182,7 @@ def gitcheck_one(d):
             row["update"] = True
             row["last"] = git(d, "log", "-1", "--format=%cr", u).stdout.strip()
             if git(d, "status", "--porcelain", "--untracked-files=no").stdout.strip():
-                row["note"] = "has local changes (they're kept)"
+                row["note"] = "local changes kept"
     except (OSError, subprocess.SubprocessError) as e:
         row["note"] = str(e)[:120]
     return row

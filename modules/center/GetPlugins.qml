@@ -23,14 +23,15 @@ Column {
     const q = filter.trim().toLowerCase()
     const out = []
     for (const id of PluginManager.updatable) {
-      const info = Installed.all.find(p => p.id === id) || { name: id, version: "" }
-      out.push({ key: "plugin:" + id, kind: "plugin", name: info.name,
-                 sub: (info.version ? "v" + info.version + "  ·  " : "") + "new changes on its repo",
+      const info = Installed.items.find(p => p.id === id) || Installed.all.find(p => p.id === id) || { name: id, version: "" }
+      out.push({ key: "plugin:" + id, kind: "plugin", name: info.name, icon: info.icon || "extension",
+                 sub: (info.version ? "v" + info.version + " · " : "") + "update ready",
                  note: PluginManager.updates[id].note || "" })
     }
     for (const g of PluginManager.gitUpdatable)
-      out.push({ key: "git:" + g.path, kind: "git", name: g.name,
-                 sub: g.behind + (g.behind === 1 ? " new commit" : " new commits") + (g.last ? "  ·  latest " + g.last : ""),
+      out.push({ key: "git:" + g.path, kind: "git", name: g.name, icon: "commit",
+                 sub: g.behind.toLocaleString(Qt.locale("en_US"), "f", 0) + (g.behind === 1 ? " new commit" : " new commits")
+                      + (g.note ? "" : g.last ? " · " + g.last : ""),
                  note: g.note || "" })
     return q === "" ? out : out.filter(r => (r.name + " " + r.sub).toLowerCase().includes(q))
   }
@@ -69,31 +70,18 @@ Column {
   }
   component Head: Text { color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase }
 
-  // One update you can tick. Click anywhere on the row.
-  component UpdateRow: Rectangle {
-    id: ur
+  // A tile you can tick: click anywhere on it.
+  component UpdateTile: Tile {
     required property var modelData
-    readonly property bool on: !!page.picked[modelData.key]
-    width: parent.width; height: 44; radius: 10
-    color: on ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14) : rowTap.containsMouse ? Theme.surfaceRaised : "transparent"
-    Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
-    Icon {
-      id: box
-      anchors.left: parent.left; anchors.leftMargin: 8; anchors.verticalCenter: parent.verticalCenter
-      name: ur.on ? "check_box" : "check_box_outline_blank"; filled: ur.on
-      font.pixelSize: 20; color: ur.on ? Theme.accent : Theme.textDim
-    }
-    Column {
-      anchors.left: box.right; anchors.leftMargin: 10; anchors.right: parent.right; anchors.rightMargin: 8
-      anchors.verticalCenter: parent.verticalCenter
-      Text { width: parent.width; elide: Text.ElideRight; text: ur.modelData.name; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
-      Text {
-        width: parent.width; elide: Text.ElideRight
-        text: ur.modelData.sub + (ur.modelData.note ? "  ·  " + ur.modelData.note : "")
-        color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
-      }
-    }
-    MouseArea { id: rowTap; anchors.fill: parent; hoverEnabled: true; enabled: !PluginManager.busy; cursorShape: Qt.PointingHandCursor; onClicked: page.toggle(ur.modelData.key) }
+    width: (page.width - 16) / 3
+    icon: modelData.icon
+    name: modelData.name
+    status: modelData.sub + (modelData.note ? " · " + modelData.note : "")
+    alert: false
+    checkable: true
+    picked: !!page.picked[modelData.key]
+    clickable: !PluginManager.busy
+    onClicked: page.toggle(modelData.key)
   }
 
   // ── What's happening ──────────────────────────
@@ -153,12 +141,13 @@ Column {
       }
     }
 
-    Head { visible: page.pluginRows.length > 0; text: "Plugins"; topPadding: 4 }
-    Repeater { model: page.pluginRows; UpdateRow { } }
-
-    Head { visible: page.gitRows.length > 0; text: "Git installs"; topPadding: 4 }
-    Repeater { model: page.gitRows; UpdateRow { } }
   }
+
+  Head { visible: page.pluginRows.length > 0; text: "Plugins" }
+  Flow { visible: page.pluginRows.length > 0; width: page.width; spacing: 8; Repeater { model: page.pluginRows; UpdateTile { } } }
+
+  Head { visible: page.gitRows.length > 0; text: "Git installs" }
+  Flow { visible: page.gitRows.length > 0; width: page.width; spacing: 8; Repeater { model: page.gitRows; UpdateTile { } } }
 
   // What was checked, so an empty list still says something.
   Text {

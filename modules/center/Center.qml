@@ -41,19 +41,39 @@ PanelWindow {
 
   // ── Every page, in sidebar order ──────────────
   // Three kinds of window, each with only its own things in the sidebar:
-  //   plugins:  your installed plugins (Running, Not running, Omarchy)
+  //   plugins:  All plugins, a grid tab per kind (Running, Background, Omarchy…), Updates
   //   settings: the Settings sections
   //   device:   Notifications, Sound & Bluetooth
+  readonly property var gridTabs: [
+    { key: "grid-running", group: "Running", icon: "play_circle", words: "running on active",
+      sub: "Plugins you have on. Click one to use it." },
+    { key: "grid-notrunning", group: "Not running", icon: "pause_circle", words: "off disabled stopped",
+      sub: "Plugins you have installed but turned off." },
+    { key: "grid-background", group: "Background", icon: "layers", words: "background service hidden",
+      sub: "Plugins that work out of sight, with nothing to click." },
+    { key: "grid-omarchy", group: "Omarchy", icon: "widgets", words: "omarchy built in first party",
+      sub: "What comes with Omarchy." }
+  ]
+  // The grid tab a plugin's page belongs to (lit in the sidebar while you're on it).
+  readonly property string tabOfCurrent: current && current.plugin ? ((gridTabs.find(g => g.group === current.group) || {}).key || "") : ""
   readonly property var allPages: {
     const out = [{ key: "allplugins", mode: "plugins", group: "Plugins", name: "All plugins", icon: "apps",
                    sub: "Everything you have installed. Click one to use it.", words: "all grid overview",
-                   url: Qt.resolvedUrl("PluginGrid.qml") },
-                 { key: "getplugins", mode: "plugins", group: "Plugins", name: "Updates", icon: "system_update",
-                   sub: "Plugins and git installs with updates. Tick what you want, then update.",
-                   words: "update updates upgrade download git pull plugins installs refresh",
-                   url: Qt.resolvedUrl("GetPlugins.qml") }]
+                   url: Qt.resolvedUrl("PluginGrid.qml") }]
+    // One grid tab per kind of plugin; the plugins themselves only show in the
+    // sidebar while you search.
+    for (const g of win.gridTabs) {
+      const n = Installed.items.filter(p => p.group === g.group).length
+      if (n) out.push({ key: g.key, mode: "plugins", group: "Plugins", name: g.group, icon: g.icon, sub: g.sub,
+                        words: g.words, only: g.group, count: String(n), url: Qt.resolvedUrl("PluginGrid.qml") })
+    }
+    out.push({ key: "getplugins", mode: "plugins", group: "Plugins", name: "Updates", icon: "system_update",
+               sub: "Plugins and git installs with updates. Tick what you want, then update.",
+               words: "update updates upgrade download git pull plugins installs refresh",
+               count: String(PluginManager.updatable.length + PluginManager.gitUpdatable.length || ""),
+               url: Qt.resolvedUrl("GetPlugins.qml") })
     for (const p of Installed.items)
-      out.push({ key: p.key, mode: "plugins", group: p.group, name: p.name, icon: p.icon, sub: p.sub,
+      out.push({ key: p.key, mode: "plugins", group: p.group, name: p.name, icon: p.icon, sub: p.sub, tucked: true,
                  words: p.id + " " + p.description, plugin: p, pinnable: !!WidgetHost.item(p.key),
                  url: p.use === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
                                        : Qt.resolvedUrl("PluginPage.qml") })
@@ -103,7 +123,8 @@ PanelWindow {
   readonly property var shown: {
     const q = search.text.trim().toLowerCase()
     // the page you're on stays in the list while you type (Updates filters with the same box)
-    return q === "" ? pages : pages.filter(p => p.key === Popouts.center || (p.name + " " + p.words + " " + p.group).toLowerCase().includes(q))
+    return q === "" ? pages.filter(p => !p.tucked)
+         : pages.filter(p => p.key === Popouts.center || (p.name + " " + p.words + " " + p.group).toLowerCase().includes(q))
   }
 
   function go(d) {
@@ -241,7 +262,7 @@ PanelWindow {
               }
               Rectangle {
                 id: sideItem
-                readonly property bool here: Popouts.center === modelData.key
+                readonly property bool here: Popouts.center === modelData.key || win.tabOfCurrent === modelData.key
                 // Keep the picked page in view in a long list.
                 onHereChanged: if (here) Qt.callLater(() => {
                   const y = sideItem.mapToItem(list, 0, 0).y
@@ -278,7 +299,7 @@ PanelWindow {
                 }
                 // Live status (battery, playing, unread...) on the right.
                 Text {
-                  readonly property var st: modelData.plugin ? Status.of(modelData.key) : ({ text: "", alert: false })
+                  readonly property var st: modelData.plugin ? Status.of(modelData.key) : ({ text: modelData.count || "", alert: false })
                   anchors.right: parent.right
                   anchors.rightMargin: 10
                   anchors.verticalCenter: parent.verticalCenter
@@ -470,6 +491,7 @@ PanelWindow {
             if (!active || !win.current) return
             key = win.current.key
             const props = win.current.section ? { section: win.current.section, filter: search.text }
+                        : win.current.only ? { only: win.current.only }
                         : win.current.plugin && win.current.plugin.use !== "page" ? { plugin: win.current.plugin } : {}
             setSource(win.current.url, props)
           }
