@@ -48,9 +48,9 @@ PanelWindow {
     const out = [{ key: "allplugins", mode: "plugins", group: "Plugins", name: "All plugins", icon: "apps",
                    sub: "Everything you have installed. Click one to use it.", words: "all grid overview",
                    url: Qt.resolvedUrl("PluginGrid.qml") },
-                 { key: "getplugins", mode: "plugins", group: "Plugins", name: "Get plugins", icon: "add_circle",
-                   sub: "Install from the Omarchy marketplace, and update what you have.",
-                   words: "install marketplace update updates download get new add remove",
+                 { key: "getplugins", mode: "plugins", group: "Plugins", name: "Updates", icon: "system_update",
+                   sub: "Plugins and git installs with updates. Tick what you want, then update.",
+                   words: "update updates upgrade download git pull plugins installs refresh",
                    url: Qt.resolvedUrl("GetPlugins.qml") }]
     for (const p of Installed.items)
       out.push({ key: p.key, mode: "plugins", group: p.group, name: p.name, icon: p.icon, sub: p.sub,
@@ -102,7 +102,7 @@ PanelWindow {
   readonly property var pages: allPages.filter(p => p.mode === mode)
   readonly property var shown: {
     const q = search.text.trim().toLowerCase()
-    // the page you're on stays in the list while you type (Get plugins searches with the same box)
+    // the page you're on stays in the list while you type (Updates filters with the same box)
     return q === "" ? pages : pages.filter(p => p.key === Popouts.center || (p.name + " " + p.words + " " + p.group).toLowerCase().includes(q))
   }
 
@@ -112,7 +112,7 @@ PanelWindow {
   }
 
   onWantedChanged: if (wanted) { search.text = ""; search.forceActiveFocus(); Installed.reload(); PluginManager.checkUpdates(false) }
-  // The page you were on went away (its plugin was removed): go to Get plugins.
+  // The page you were on went away (its plugin was removed): go to Updates.
   Timer {
     id: lostPage
     interval: 1200

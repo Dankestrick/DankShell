@@ -2,9 +2,10 @@ import QtQuick
 import Quickshell
 import "../../"
 
-// GetPlugins — the Plugins window's "Get plugins" page: updates waiting for
-// the plugins you have, then the Omarchy marketplace (plugins.omarchy.org) to
-// search and install from. Everything runs through services/PluginManager.qml.
+// GetPlugins — the Plugins window's "Updates" page: plugins with an update
+// waiting, and git installs (God's Eye View, ComfyUI, the CloneWars clones)
+// that are behind their repo. Tick one, some or all, then Update selected.
+// Everything runs through services/PluginManager.qml.
 Column {
   id: page
   property bool showing: false
@@ -12,15 +13,41 @@ Column {
   signal closeRequested()
   spacing: 10
 
-  onShowingChanged: if (showing) { PluginManager.loadCatalog(); PluginManager.checkUpdates(false) }
-  Component.onCompleted: if (showing) { PluginManager.loadCatalog(); PluginManager.checkUpdates(false) }
+  onShowingChanged: if (showing) PluginManager.checkAll(false)
+  Component.onCompleted: if (showing) PluginManager.checkAll(false)
 
-  // Best matches first (the list is already verified-first, most stars first).
-  readonly property var results: {
+  readonly property bool checking: PluginManager.checking || PluginManager.gitChecking
+
+  // Every row that can be updated: { key, kind, name, sub, note }
+  readonly property var rows: {
     const q = filter.trim().toLowerCase()
-    const all = PluginManager.catalog.filter(p => !PluginManager.installed(p.id))
-    const hit = q === "" ? all : all.filter(p => (p.name + " " + p.id + " " + p.description + " " + p.category + " " + p.author).toLowerCase().includes(q))
-    return hit.slice(0, 40)
+    const out = []
+    for (const id of PluginManager.updatable) {
+      const info = Installed.all.find(p => p.id === id) || { name: id, version: "" }
+      out.push({ key: "plugin:" + id, kind: "plugin", name: info.name,
+                 sub: (info.version ? "v" + info.version + "  ·  " : "") + "new changes on its repo",
+                 note: PluginManager.updates[id].note || "" })
+    }
+    for (const g of PluginManager.gitUpdatable)
+      out.push({ key: "git:" + g.path, kind: "git", name: g.name,
+                 sub: g.behind + (g.behind === 1 ? " new commit" : " new commits") + (g.last ? "  ·  latest " + g.last : ""),
+                 note: g.note || "" })
+    return q === "" ? out : out.filter(r => (r.name + " " + r.sub).toLowerCase().includes(q))
+  }
+  readonly property var pluginRows: rows.filter(r => r.kind === "plugin")
+  readonly property var gitRows: rows.filter(r => r.kind === "git")
+
+  // What's ticked (key -> true). Rows that went away drop out on their own.
+  property var picked: ({})
+  readonly property var pickedKeys: rows.map(r => r.key).filter(k => picked[k])
+  readonly property bool allPicked: rows.length > 0 && pickedKeys.length === rows.length
+  function toggle(key) { const p = Object.assign({}, picked); if (p[key]) delete p[key]; else p[key] = true; picked = p }
+  function pickAll(on) { const p = {}; if (on) for (const r of rows) p[r.key] = true; picked = p }
+  function updatePicked() {
+    const keys = pickedKeys
+    if (!keys.length) return
+    PluginManager.updateMany(keys)
+    picked = ({})
   }
 
   component Pill: Rectangle {
@@ -28,20 +55,46 @@ Column {
     property string label: ""
     property string icon: ""
     property bool primary: false
-    property bool danger: false
     signal clicked()
     width: pr.implicitWidth + 22; height: 28; radius: 14
     opacity: enabled ? 1 : 0.4
-    color: primary ? Theme.accent : danger ? Theme.urgent : tap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface
+    color: primary ? Theme.accent : tap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface
     Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
     Row {
       id: pr; anchors.centerIn: parent; spacing: 5
-      Icon { visible: pb.icon !== ""; name: pb.icon; font.pixelSize: 15; color: pb.primary || pb.danger ? Theme.surface : Theme.text; anchors.verticalCenter: parent.verticalCenter }
-      Text { text: pb.label; color: pb.primary || pb.danger ? Theme.surface : Theme.text; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+      Icon { visible: pb.icon !== ""; name: pb.icon; font.pixelSize: 15; color: pb.primary ? Theme.surface : Theme.text; anchors.verticalCenter: parent.verticalCenter }
+      Text { text: pb.label; color: pb.primary ? Theme.surface : Theme.text; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
     }
     MouseArea { id: tap; anchors.fill: parent; hoverEnabled: true; enabled: pb.enabled; cursorShape: Qt.PointingHandCursor; onClicked: pb.clicked() }
   }
   component Head: Text { color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase }
+
+  // One update you can tick. Click anywhere on the row.
+  component UpdateRow: Rectangle {
+    id: ur
+    required property var modelData
+    readonly property bool on: !!page.picked[modelData.key]
+    width: parent.width; height: 44; radius: 10
+    color: on ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.14) : rowTap.containsMouse ? Theme.surfaceRaised : "transparent"
+    Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+    Icon {
+      id: box
+      anchors.left: parent.left; anchors.leftMargin: 8; anchors.verticalCenter: parent.verticalCenter
+      name: ur.on ? "check_box" : "check_box_outline_blank"; filled: ur.on
+      font.pixelSize: 20; color: ur.on ? Theme.accent : Theme.textDim
+    }
+    Column {
+      anchors.left: box.right; anchors.leftMargin: 10; anchors.right: parent.right; anchors.rightMargin: 8
+      anchors.verticalCenter: parent.verticalCenter
+      Text { width: parent.width; elide: Text.ElideRight; text: ur.modelData.name; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
+      Text {
+        width: parent.width; elide: Text.ElideRight
+        text: ur.modelData.sub + (ur.modelData.note ? "  ·  " + ur.modelData.note : "")
+        color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
+      }
+    }
+    MouseArea { id: rowTap; anchors.fill: parent; hoverEnabled: true; enabled: !PluginManager.busy; cursorShape: Qt.PointingHandCursor; onClicked: page.toggle(ur.modelData.key) }
+  }
 
   // ── What's happening ──────────────────────────
   Card {
@@ -64,77 +117,61 @@ Column {
     }
   }
 
-  // ── Updates ───────────────────────────────────
+  // ── The list ──────────────────────────────────
   Card {
     width: parent.width
     Item {
       width: parent.width; height: 28
-      Head { anchors.verticalCenter: parent.verticalCenter; text: PluginManager.checking ? "Checking for updates…" : PluginManager.updatable.length ? "Updates ready" : "Your plugins are up to date" }
+      Head {
+        anchors.verticalCenter: parent.verticalCenter
+        text: page.checking ? "Checking for updates…"
+            : page.rows.length === 0 ? "Everything is up to date"
+            : page.rows.length + (page.rows.length === 1 ? " update ready" : " updates ready")
+      }
       Pill {
         anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
         icon: "refresh"; label: "Check again"
-        enabled: !PluginManager.checking && !PluginManager.busy
-        onClicked: PluginManager.checkUpdates(true)
+        enabled: !page.checking && !PluginManager.busy
+        onClicked: PluginManager.checkAll(true)
       }
     }
-    Repeater {
-      model: PluginManager.updatable
-      Item {
-        required property var modelData
-        readonly property var info: Installed.all.find(p => p.id === modelData) || { name: modelData, version: "" }
-        width: parent.width; height: 40
-        Column {
-          anchors.verticalCenter: parent.verticalCenter
-          Text { text: info.name; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
-          Text { text: (info.version ? "v" + info.version + "  ·  " : "") + "new changes on its repo"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10 }
-        }
-        Pill {
-          anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-          icon: "download"; label: "Update"; primary: true
-          enabled: !PluginManager.busy
-          onClicked: PluginManager.update(modelData)
-        }
+    Item {
+      visible: page.rows.length > 0
+      width: parent.width; height: 30
+      Pill {
+        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+        icon: page.allPicked ? "deselect" : "select_all"; label: page.allPicked ? "Select none" : "Select all"
+        enabled: !PluginManager.busy
+        onClicked: page.pickAll(!page.allPicked)
+      }
+      Pill {
+        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+        icon: "download"; primary: true
+        label: page.pickedKeys.length ? "Update " + page.pickedKeys.length + " selected" : "Pick what to update"
+        enabled: page.pickedKeys.length > 0 && !PluginManager.busy
+        onClicked: page.updatePicked()
       }
     }
+
+    Head { visible: page.pluginRows.length > 0; text: "Plugins"; topPadding: 4 }
+    Repeater { model: page.pluginRows; UpdateRow { } }
+
+    Head { visible: page.gitRows.length > 0; text: "Git installs"; topPadding: 4 }
+    Repeater { model: page.gitRows; UpdateRow { } }
   }
 
-  // ── Marketplace ───────────────────────────────
-  Head {
-    text: PluginManager.catalogLoading ? "Loading the marketplace…"
-        : PluginManager.catalogError !== "" ? PluginManager.catalogError
-        : page.filter.trim() === "" ? "Popular on the marketplace  ·  type in the search box to find more"
-        : page.results.length + (page.results.length === 40 ? "+" : "") + " found"
-  }
-  Repeater {
-    model: page.results
-    Card {
-      required property var modelData
-      width: page.width
-      Item {
-        width: parent.width; height: 20
-        Text {
-          id: nm
-          anchors.verticalCenter: parent.verticalCenter
-          text: modelData.name
-          color: Theme.text; font.family: Theme.fontText; font.pixelSize: 13; font.weight: Font.DemiBold
-        }
-        Icon { visible: modelData.verified; anchors.left: nm.right; anchors.leftMargin: 6; anchors.verticalCenter: parent.verticalCenter; name: "verified"; filled: true; color: Theme.accent; font.pixelSize: 14 }
-        Pill {
-          anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-          icon: "add"; label: "Install"; primary: true
-          enabled: !PluginManager.busy
-          onClicked: PluginManager.install(modelData)
-        }
-      }
-      Text {
-        width: parent.width - 100; wrapMode: Text.WordWrap; maximumLineCount: 2; elide: Text.ElideRight
-        text: modelData.description
-        color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11
-      }
-      Text {
-        text: [modelData.author ? "by " + modelData.author : "", modelData.kind, modelData.category, modelData.version ? "v" + modelData.version : "", modelData.stars ? "★ " + modelData.stars : ""].filter(x => x).join("  ·  ")
-        color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
-      }
+  // What was checked, so an empty list still says something.
+  Text {
+    visible: !page.checking && PluginManager.gitInstalls.length > 0
+    width: parent.width; wrapMode: Text.WordWrap
+    readonly property var gi: PluginManager.gitInstalls
+    text: {
+      const fine = gi.filter(g => !g.update && !g.note).length
+      const off = gi.filter(g => !g.update && g.note)
+      return fine + " git installs are up to date"
+        + (off.length ? "  ·  skipped: " + off.map(g => g.name + " (" + g.note + ")").join(", ") : "")
+        + "  ·  more go in ~/.config/dankshell/git-installs.json"
     }
+    color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10
   }
 }
