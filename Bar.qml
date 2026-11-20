@@ -117,6 +117,8 @@ Item {
     function settings(): void { center("@settings") }
     function plugins(): void { center("@plugins") }
     function gamemode(): void { Toggles.toggleGameMode() }
+    // The Camera page's Open big / Close big.
+    function cameraBig(): void { if (Webcam.bigOpen) Webcam.closeBig(); else Webcam.openBig() }
     // A look inside one widget (for fixing ones that show nothing).
     function widgetInfo(id: string): string {
       return JSON.stringify(WidgetHost.live.filter(w => w.moduleName === id).map(w => {

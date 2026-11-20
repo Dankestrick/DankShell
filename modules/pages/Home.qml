@@ -52,7 +52,7 @@ Column {
     }
   }
 
-  MusicCard { width: parent.width }
+  MusicCard { width: parent.width; visible: Media.showing }
 
   Slider {
     width: parent.width

@@ -190,7 +190,12 @@ Singleton {
     big.running = true
   }
   function closeBig() { if (big.running) big.signal(15) }
-  Process { id: big; onRunningChanged: if (!running) cam.wantBig = false }
+  Process {
+    id: big
+    onRunningChanged: if (!running) cam.wantBig = false
+    stderr: StdioCollector { id: bigErr }
+    onExited: (code) => { if (code !== 0) console.warn("DankShell Open big: mpv exited", code, String(bigErr.text).trim().split("\n").slice(-4).join(" | ")) }
+  }
 
   Component.onCompleted: refresh()
 }

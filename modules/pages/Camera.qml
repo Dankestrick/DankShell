@@ -40,16 +40,25 @@ Column {
   property bool started: false
   onLiveChanged: { if (live) startDelay.restart(); else { startDelay.stop(); started = false } }
   Timer { id: startDelay; interval: 250; onTriggered: page.started = page.live }
-  MM.CaptureSession {
-    camera: MM.Camera {
-      id: cam
-      cameraDevice: page.dev !== null ? page.dev : devs.defaultVideoInput
-      active: page.started
-      onErrorOccurred: (err, msg) => console.warn("DankShell camera:", err, msg)
+  // The camera only exists while the preview runs: a stopped Camera still
+  // holds /dev/video, so Open big's mpv couldn't open it (2026-11-20).
+  readonly property bool camError: !!camLoader.item && camLoader.item.error !== MM.Camera.NoError
+  Loader {
+    id: camLoader
+    visible: false        // takes no room in the page
+    active: page.started
+    sourceComponent: MM.CaptureSession {
+      readonly property int error: cam.error
+      camera: MM.Camera {
+        id: cam
+        cameraDevice: page.dev !== null ? page.dev : devs.defaultVideoInput
+        cameraFormat: page.previewFormat(page.dev)
+        active: true
+        onErrorOccurred: (err, msg) => console.warn("DankShell camera:", err, msg)
+      }
+      videoOutput: out
     }
-    videoOutput: out
   }
-  onDevChanged: { const f = previewFormat(dev); if (f) cam.cameraFormat = f }
 
   // ── Small pieces ──────────────────────────────
   component SectionTitle: Text {
@@ -136,10 +145,10 @@ Column {
       }
       Text {
         anchors.centerIn: parent
-        visible: !page.started || cam.error !== MM.Camera.NoError
+        visible: !page.started || page.camError
         text: !Webcam.present ? "Plug in the camera"
             : Webcam.bigOpen ? "Showing in the big window"
-            : cam.error !== MM.Camera.NoError ? "Camera busy (a call or another app has it)"
+            : page.camError ? "Camera busy (a call or another app has it)"
             : ""
         color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 12
       }

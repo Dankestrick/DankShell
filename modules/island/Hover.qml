@@ -32,7 +32,7 @@ Item {
   // ── Right: now playing ────────────────────────
   Row {
     id: nowPlaying
-    visible: Media.hasSong
+    visible: Media.showing
     anchors.right: parent.right
     anchors.rightMargin: 16
     anchors.top: parent.top
