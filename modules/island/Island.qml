@@ -78,6 +78,18 @@ PanelWindow {
     target: Popouts
     function onBackToIsland(screenName) { if (screenName === island.modelData.name) island.open() }
   }
+  // Pandora's full player "mini" switch: there's no bar dropdown here, so the
+  // island's Pandora page is the mini player. Opens on the player's monitor.
+  Connections {
+    target: PluginHost.service("pandora")
+    ignoreUnknownSignals: true
+    function onDisplayModeChanged() {
+      const s = PluginHost.service("pandora")
+      if (!s || s.displayMode !== "mini") return
+      const want = s.miniScreenName || (Hyprland.focusedMonitor ? Hyprland.focusedMonitor.name : "")
+      if (want === island.modelData.name) island.showPage("pandora")
+    }
+  }
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
   function showThemes() { openTimer.stop(); closeTimer.stop(); state = "themes"; themeSwitcher.reset() }
