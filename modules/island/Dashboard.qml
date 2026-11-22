@@ -6,8 +6,8 @@ import "../../"
 // the top-left corner (see Island.qml). This file leaves room for it.
 //
 // Top left:  the date under the clock (click it for the Journal).
-// Top right: your pinned plugins, then themes, wallpapers, device (Games,
-// Camera), plugins, settings, power (opens the Power window:
+// Top right: your pinned plugins, then themes, wallpapers, games, plugins,
+// settings, power (opens the Power window:
 // System info, Lock, Screensaver, Restart, Power off).
 //   A pinned page plugin (Pandora, Kraken...) opens right here, sliding in
 //   like a tab; click it again to go back Home.
@@ -110,7 +110,7 @@ Item {
     Rectangle { visible: dash.pins.length > 0; width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Theme.edge }
     HeaderButton { icon: "palette"; onClicked: dash.themesRequested() }
     HeaderButton { icon: "wallpaper"; onClicked: dash.wallsRequested() }
-    HeaderButton { icon: "devices"; onClicked: dash.pageRequested(Popouts.lastDevice) }
+    HeaderButton { icon: "joystick"; onClicked: dash.pageRequested("game") }
     HeaderButton { icon: "extension"; onClicked: dash.pageRequested("@plugins") }
     HeaderButton { icon: "settings"; onClicked: dash.pageRequested("@settings") }
     HeaderButton { icon: "power_settings_new"; onClicked: dash.pageRequested("@power") }

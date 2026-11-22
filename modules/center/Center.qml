@@ -43,9 +43,9 @@ PanelWindow {
 
   // ── Every page, in sidebar order ──────────────
   // Three kinds of window, each with only its own things in the sidebar:
-  //   plugins:  All plugins, a grid tab per kind (Running, Background, Omarchy…), Updates
+  //   plugins:  All plugins, a grid tab per kind (Running, Background, Omarchy…), Updates, Camera
   //   settings: the Settings sections
-  //   device:   Games, Camera
+  //   game:     Games (one page, no sidebar)
   //   audio:    Volume, EQ, Defaults
   //   notifications: Unread, Read, Archive
   //   power:    System info, Lock, Screensaver, Restart, Power off
@@ -78,6 +78,10 @@ PanelWindow {
                words: "update updates upgrade download git pull plugins installs refresh",
                count: String(PluginManager.updatable.length + PluginManager.gitUpdatable.length || ""),
                url: Qt.resolvedUrl("GetPlugins.qml") })
+    // The webcam page lives with the plugins, as its own tab.
+    out.push({ key: "camera", mode: "plugins", group: "Plugins", name: "Camera", icon: "videocam",
+               sub: "Your webcam: live picture, every setting, saved looks.",
+               url: Qt.resolvedUrl("../pages/Camera.qml"), words: "camera webcam anker video brightness exposure focus zoom look" })
     for (const p of Installed.items)
       out.push({ key: p.key, mode: "plugins", group: p.group, name: p.name, icon: p.icon, sub: p.sub, tucked: true,
                  words: p.id + " " + p.description, plugin: p, pinnable: !!WidgetHost.item(p.key),
@@ -93,14 +97,10 @@ PanelWindow {
     out.push({ key: "notif-archive", mode: "notifications", group: "Notifications", name: "Archive", icon: "inventory_2",
                sub: "From before today. Omarchy keeps them for 24 hours.", props: { stage: "archive" },
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification archive yesterday old" })
-    out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
+    // Games window (the game button in the dashboard's top row, the › on Game Mode, Super+Alt+Y).
+    out.push({ key: "game", mode: "game", group: "Games", name: "Games", icon: "joystick",
                sub: "Game Mode, your controller, and your Steam games.",
                url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })
-    out.push({ key: "camera", mode: "device", group: "Device", name: "Camera", icon: "videocam",
-               sub: "Your webcam: live picture, every setting, saved looks.",
-               url: Qt.resolvedUrl("../pages/Camera.qml"), words: "camera webcam anker video brightness exposure focus zoom look" })
-    // One-page windows (no sidebar): System from the power button, Bluetooth
-    // from a right-click on Home's Bluetooth tile.
     // Power window (the power button at the end of the dashboard's top row).
     out.push({ key: "monitor", mode: "power", group: "Power", name: "System info", icon: "monitoring",
                sub: "CPU, memory and GPU, live.",
@@ -151,7 +151,7 @@ PanelWindow {
   readonly property var current: allPages.find(p => p.key === Popouts.center) || null
   property string mode: "plugins"
   onCurrentChanged: {
-    if (current) { mode = current.mode; if (wanted) Popouts.mode = mode; if (mode === "device") Popouts.lastDevice = current.key }
+    if (current) { mode = current.mode; if (wanted) Popouts.mode = mode }
     else if (wanted) lostPage.restart()
   }
   readonly property var pages: allPages.filter(p => p.mode === mode)
