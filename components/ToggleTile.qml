@@ -15,6 +15,8 @@ Rectangle {
   property bool hasMore: false   // a › on the right that opens its page
   signal clicked()
   signal more()
+  signal rightClicked()   // a tile with its own right-click (Bluetooth opens its window)
+  property bool hasRightClick: false
 
   implicitHeight: 54
   radius: Sizes.cardRadius
@@ -68,7 +70,11 @@ Rectangle {
     anchors.fill: parent
     hoverEnabled: true
     cursorShape: Qt.PointingHandCursor
-    onClicked: if (!tile.busy) tile.clicked()
+    acceptedButtons: tile.hasRightClick ? Qt.LeftButton | Qt.RightButton : Qt.LeftButton
+    onClicked: (m) => {
+      if (m.button === Qt.RightButton) tile.rightClicked()
+      else if (!tile.busy) tile.clicked()
+    }
   }
 
   Rectangle {

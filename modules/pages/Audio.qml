@@ -12,6 +12,12 @@ Column {
   id: page
   property bool showing: false
   signal closeRequested()
+  // Which part to show: "" = all of it (the island's Audio page),
+  // or one tab of the Audio window: "volume", "eq", "defaults".
+  property string part: ""
+  readonly property bool showVol: part === "" || part === "volume"
+  readonly property bool showEq: part === "" || part === "eq"
+  readonly property bool showDefs: part === "" || part === "defaults"
   spacing: 10
 
   onShowingChanged: { Sound.watching = showing; if (showing) Eq.refresh() }
@@ -52,6 +58,7 @@ Column {
   // ── Everything on/off ─────────────────────────
   Card {
     width: parent.width
+    visible: page.showVol
     Item {
       width: parent.width; height: 44
       DeviceHeader {
@@ -78,8 +85,9 @@ Column {
   // ── Output ────────────────────────────────────
   Card {
     width: parent.width
-    Head { text: "Output" }
+    Head { text: page.part === "defaults" ? "Output · click one to use it" : "Output" }
     SliderRow {
+      visible: page.showVol
       icon: Sound.outputMuted ? "volume_off" : "volume_up"
       iconClick: true
       live: true
@@ -90,15 +98,16 @@ Column {
     }
     Repeater {
       model: Sound.outputs
-      DeviceRow { required property var modelData; icon: modelData.icon; text: modelData.label; on: modelData.on; onPicked: Sound.useOutput(modelData) }
+      DeviceRow { required property var modelData; visible: page.showDefs; icon: modelData.icon; text: modelData.label; on: modelData.on; onPicked: Sound.useOutput(modelData) }
     }
   }
 
   // ── Input ─────────────────────────────────────
   Card {
     width: parent.width
-    Head { text: "Input" }
+    Head { text: page.part === "defaults" ? "Input · click one to use it" : "Input" }
     SliderRow {
+      visible: page.showVol
       icon: Sound.inputMuted ? "mic_off" : "mic"
       iconClick: true
       live: true
@@ -110,7 +119,7 @@ Column {
     }
     // Live mic level
     Rectangle {
-      visible: Sound.micLevelKnown
+      visible: Sound.micLevelKnown && page.showVol
       width: parent.width; height: 6; radius: 3; color: Theme.surface
       Rectangle {
         height: parent.height; radius: 3
@@ -121,14 +130,14 @@ Column {
     }
     Repeater {
       model: Sound.inputs
-      DeviceRow { required property var modelData; icon: "mic"; text: modelData.label; on: modelData.on; onPicked: Sound.useInput(modelData) }
+      DeviceRow { required property var modelData; visible: page.showDefs; icon: "mic"; text: modelData.label; on: modelData.on; onPicked: Sound.useInput(modelData) }
     }
   }
 
   // ── Apps ──────────────────────────────────────
   Card {
     width: parent.width
-    visible: Sound.streams.length > 0
+    visible: Sound.streams.length > 0 && page.showVol
     Head { text: "Apps playing" }
     Repeater {
       model: Sound.streams
@@ -152,6 +161,7 @@ Column {
   Card {
     id: eqCard
     width: parent.width
+    visible: page.showEq
     SwitchRow {
       icon: "equalizer"; label: "Equalizer"
       sub: Eq.busy ? "Working…" : Eq.message !== "" ? Eq.message

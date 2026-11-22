@@ -63,7 +63,7 @@ Center 1.0 modules/center/Center.qml
 
 # modules/pages/ — one file per dashboard page
 Home 1.0 modules/pages/Home.qml
-System 1.0 modules/pages/System.qml
+Bluetooth 1.0 modules/pages/Bluetooth.qml
 Pandora 1.0 modules/pages/Pandora.qml
 Kraken 1.0 modules/pages/Kraken.qml
 Gravastar 1.0 modules/pages/Gravastar.qml

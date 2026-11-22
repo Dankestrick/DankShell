@@ -24,7 +24,9 @@ PanelWindow {
   visible: wanted || card.opacity > 0
 
   // No anchors = Hyprland puts it in the middle of the screen.
-  implicitWidth: Sizes.centerWidth
+  // A window with only one page has no sidebar, so it's narrower.
+  readonly property bool solo: pages.length === 1
+  implicitWidth: solo ? Sizes.centerWidth - side.width : Sizes.centerWidth
   implicitHeight: Sizes.centerHeight
   color: "transparent"
   exclusionMode: ExclusionMode.Ignore
@@ -43,7 +45,9 @@ PanelWindow {
   // Three kinds of window, each with only its own things in the sidebar:
   //   plugins:  All plugins, a grid tab per kind (Running, Background, Omarchy…), Updates
   //   settings: the Settings sections
-  //   device:   Notifications, Sound & Bluetooth
+  //   device:   Notifications, Games, Camera
+  //   audio:    Volume, EQ, Defaults
+  //   system, bluetooth: one page each, no sidebar (solo)
   readonly property var gridTabs: [
     { key: "grid-running", group: "Running", icon: "play_circle", words: "running on active",
       sub: "Plugins you have on. Click one to use it." },
@@ -80,21 +84,30 @@ PanelWindow {
     out.push({ key: "notifications", mode: "device", group: "Device", name: "Notifications", icon: "notifications",
                sub: "Click to read it all, click again to clear it. × clears it right away.",
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
-    out.push({ key: "monitor", mode: "device", group: "Device", name: "System", icon: "monitoring",
-               sub: "CPU, memory and GPU, live.",
-               url: Qt.resolvedUrl("../pages/Monitor.qml"), words: "cpu gpu ram memory vram temp temperature monitor load" })
     out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
                sub: "Game Mode, your controller, and your Steam games.",
                url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })
     out.push({ key: "camera", mode: "device", group: "Device", name: "Camera", icon: "videocam",
                sub: "Your webcam: live picture, every setting, saved looks.",
                url: Qt.resolvedUrl("../pages/Camera.qml"), words: "camera webcam anker video brightness exposure focus zoom look" })
-    out.push({ key: "sound", mode: "device", group: "Device", name: "Audio", icon: "volume_up",
-               sub: "Outputs, mics, app volumes and the EQ.",
-               url: Qt.resolvedUrl("../pages/Audio.qml"), words: "audio sound output speaker headset mic microphone volume eq equalizer autoeq hearing" })
-    out.push({ key: "bluetooth", mode: "device", group: "Device", name: "Bluetooth", icon: "bluetooth",
-               sub: "Which Bluetooth devices are on.",
-               url: Qt.resolvedUrl("../pages/System.qml"), words: "bluetooth pair devices controller headphones" })
+    // One-page windows (no sidebar): System from the power button, Bluetooth
+    // from a right-click on Home's Bluetooth tile.
+    out.push({ key: "monitor", mode: "system", group: "System", name: "System", icon: "monitoring",
+               sub: "CPU, memory and GPU, live.",
+               url: Qt.resolvedUrl("../pages/Monitor.qml"), words: "cpu gpu ram memory vram temp temperature monitor load" })
+    out.push({ key: "bluetooth", mode: "bluetooth", group: "Bluetooth", name: "Bluetooth", icon: "bluetooth",
+               sub: "Find new devices and pair them. Click one to connect.",
+               url: Qt.resolvedUrl("../pages/Bluetooth.qml"), words: "bluetooth pair devices controller headphones scan" })
+    // Audio window (the button left of Home's volume slider): a tab each.
+    out.push({ key: "sound", mode: "audio", group: "Audio", name: "Volume", icon: "volume_up",
+               sub: "Your volume, your mic, and every app's volume.", props: { part: "volume" },
+               url: Qt.resolvedUrl("../pages/Audio.qml"), words: "audio sound volume mic microphone apps mute" })
+    out.push({ key: "eq", mode: "audio", group: "Audio", name: "EQ", icon: "equalizer",
+               sub: "Shape the sound of every output, plus a fix for your headphones.", props: { part: "eq" },
+               url: Qt.resolvedUrl("../pages/Audio.qml"), words: "eq equalizer autoeq hearing boost bass presets headphone fix" })
+    out.push({ key: "defaults", mode: "audio", group: "Audio", name: "Defaults", icon: "speaker",
+               sub: "Click the speaker and mic you want to use.", props: { part: "defaults" },
+               url: Qt.resolvedUrl("../pages/Audio.qml"), words: "default output input speaker headset mic device pick" })
     for (const sec of SettingsList.SECTIONS)
       out.push({ key: sec.key, mode: "settings", group: "Settings", name: sec.name, icon: sec.icon, sub: sec.sub,
                  url: Qt.resolvedUrl("../settings/SettingsPage.qml"), section: sec,
@@ -132,7 +145,18 @@ PanelWindow {
     if (shown.length) Popouts.center = shown[(i + d + shown.length) % shown.length].key
   }
 
-  onWantedChanged: if (wanted) { search.text = ""; search.forceActiveFocus(); Installed.reload(); PluginManager.checkUpdates(false) }
+  onWantedChanged: if (wanted) { search.text = ""; takeKeys(); Installed.reload(); PluginManager.checkUpdates(false) }
+  onSoloChanged: if (wanted) takeKeys()
+  // The search box has the keys; a solo window has no search box, so the card does.
+  function takeKeys() { if (solo) card.forceActiveFocus(); else search.forceActiveFocus() }
+  // Page Up / Page Down / Home / End scroll the page on the right.
+  function scrollKey(e) {
+    const step = pane.height * 0.85, maxY = Math.max(0, pane.contentHeight - pane.height)
+    if (e.key === Qt.Key_PageDown) { pane.contentY = Math.min(maxY, pane.contentY + step); e.accepted = true }
+    else if (e.key === Qt.Key_PageUp) { pane.contentY = Math.max(0, pane.contentY - step); e.accepted = true }
+    else if (e.key === Qt.Key_End && search.text === "") { pane.contentY = maxY; e.accepted = true }
+    else if (e.key === Qt.Key_Home && search.text === "") { pane.contentY = 0; e.accepted = true }
+  }
   // The page you were on went away (its plugin was removed): go to Updates.
   Timer {
     id: lostPage
@@ -164,6 +188,7 @@ PanelWindow {
     Behavior on scale { NumberAnimation { duration: Motion.ms(Motion.move); easing.type: Motion.moveEasing; easing.overshoot: Motion.overshoot } }
 
     Keys.onEscapePressed: Popouts.closeCenter()
+    Keys.onPressed: (e) => win.scrollKey(e)
 
     // Right-click anywhere = back to the dashboard (or just close if a key opened it).
     // Only takes the right button, so left clicks and the wheel go through.
@@ -180,6 +205,7 @@ PanelWindow {
       id: side
       width: 224
       height: parent.height
+      visible: !win.solo
 
       Rectangle {
         id: searchBox
@@ -206,13 +232,7 @@ PanelWindow {
           Keys.onTabPressed: win.go(1)
           Keys.onEscapePressed: Popouts.closeCenter()
           // Page Up / Page Down / Home / End scroll the page on the right.
-          Keys.onPressed: (e) => {
-            const step = pane.height * 0.85, maxY = Math.max(0, pane.contentHeight - pane.height)
-            if (e.key === Qt.Key_PageDown) { pane.contentY = Math.min(maxY, pane.contentY + step); e.accepted = true }
-            else if (e.key === Qt.Key_PageUp) { pane.contentY = Math.max(0, pane.contentY - step); e.accepted = true }
-            else if (e.key === Qt.Key_End && search.text === "") { pane.contentY = maxY; e.accepted = true }
-            else if (e.key === Qt.Key_Home && search.text === "") { pane.contentY = 0; e.accepted = true }
-          }
+          Keys.onPressed: (e) => win.scrollKey(e)
           Text {
             anchors.fill: parent
             verticalAlignment: Text.AlignVCenter
@@ -316,12 +336,12 @@ PanelWindow {
         }
       }
     }
-    Rectangle { x: side.width; y: 14; width: 1; height: parent.height - 28; color: Theme.edge }
+    Rectangle { visible: !win.solo; x: side.width; y: 14; width: 1; height: parent.height - 28; color: Theme.edge }
 
     // ── The page ──────────────────────────────
     Flickable {
       id: pane
-      x: side.width + 1
+      x: win.solo ? 0 : side.width + 1
       width: parent.width - x
       height: parent.height
       contentHeight: body.implicitHeight + 32
@@ -490,9 +510,11 @@ PanelWindow {
           function load() {
             if (!active || !win.current) return
             key = win.current.key
-            const props = win.current.section ? { section: win.current.section, filter: search.text }
+            const props = win.current.props ? win.current.props
+                        : win.current.section ? { section: win.current.section, filter: search.text }
                         : win.current.only ? { only: win.current.only }
                         : win.current.plugin && win.current.plugin.use !== "page" ? { plugin: win.current.plugin } : {}
+            if (source == win.current.url) source = ""   // same file, new tab (Audio): load it fresh
             setSource(win.current.url, props)
           }
           onLoaded: {

@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import "../../"
 
 // Dashboard — what the island opens into when you click it.
@@ -7,7 +8,8 @@ import "../../"
 //
 // Top left:  the date under the clock (click it for the Journal).
 // Top right: your pinned plugins, then themes, wallpapers, device (Games,
-// Camera, System...), plugins, settings.
+// Camera, Notifications), plugins, settings, power (System info, Lock,
+// Screensaver, Restart, Power off).
 //   A pinned page plugin (Pandora, Kraken...) opens right here, sliding in
 //   like a tab; click it again to go back Home.
 //   A pinned widget (network, mail...) is the real widget with its dropdown.
@@ -25,7 +27,23 @@ Item {
   signal wallsRequested()
   signal pageRequested(string key)   // open this in the Center window
 
-  function reset() { page = "home" }
+  function reset() { page = "home"; powerOpen = false }
+
+  // ── Power menu (the power button, far right) ──
+  property bool powerOpen: false
+  property string armed: ""   // Restart / Power off wait for a second click
+  onPowerOpenChanged: armed = ""
+  function power(what) {
+    if ((what === "reboot" || what === "shutdown") && armed !== what) { armed = what; disarm.restart(); return }
+    powerOpen = false
+    if (what === "system") { pageRequested("monitor"); return }
+    closeRequested()
+    const cmd = what === "lock" ? ["omarchy", "system", "lock"]
+              : what === "screensaver" ? ["omarchy-launch-screensaver", "force"]
+              : ["omarchy", "system", what]
+    Quickshell.execDetached(cmd)
+  }
+  Timer { id: disarm; interval: 3000; onTriggered: dash.armed = "" }
 
   // Pinned plugins, in the order they were pinned.
   readonly property var pins: Settings.v.pinned.map(k => WidgetHost.item(k)).filter(c => !!c)
@@ -111,6 +129,7 @@ Item {
     HeaderButton { icon: "devices"; onClicked: dash.pageRequested(Popouts.lastDevice) }
     HeaderButton { icon: "extension"; onClicked: dash.pageRequested("@plugins") }
     HeaderButton { icon: "settings"; onClicked: dash.pageRequested("@settings") }
+    HeaderButton { id: powerBtn; icon: "power_settings_new"; lit: dash.powerOpen; onClicked: dash.powerOpen = !dash.powerOpen }
   }
 
   // Unpinned widgets: running, invisible, under the top row (their dropdowns
@@ -162,9 +181,78 @@ Item {
       }
     }
   }
+  // ── Power menu ────────────────────────────────
+  // A click anywhere else closes it.
+  MouseArea {
+    anchors.fill: parent
+    z: 9
+    visible: dash.powerOpen
+    onClicked: dash.powerOpen = false
+  }
+  Rectangle {
+    id: powerMenu
+    z: 10
+    readonly property var items: [
+      { key: "system", icon: "monitoring", label: "System info" },
+      { key: "lock", icon: "lock", label: "Lock" },
+      { key: "screensaver", icon: "auto_awesome", label: "Screensaver" },
+      { key: "reboot", icon: "restart_alt", label: "Restart", sure: "Click again to restart" },
+      { key: "shutdown", icon: "power_settings_new", label: "Power off", sure: "Click again to power off" }
+    ]
+    width: 210
+    height: menuCol.implicitHeight + 12
+    x: topRow.x + topRow.width - width + 4
+    y: topRow.y + 36
+    radius: Sizes.cardRadius
+    color: Theme.surface   // solid, so the tiles don't show through
+    border.width: 1
+    border.color: Theme.edge
+    opacity: dash.powerOpen ? 1 : 0
+    Rectangle { anchors.fill: parent; anchors.margins: 1; radius: parent.radius - 1; color: Theme.surfaceRaised }
+    scale: dash.powerOpen ? 1 : 0.94
+    transformOrigin: Item.TopRight
+    visible: opacity > 0
+    Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
+    Behavior on scale { NumberAnimation { duration: Motion.ms(Motion.move); easing.type: Easing.OutCubic } }
+    Column {
+      id: menuCol
+      x: 6; y: 6
+      width: parent.width - 12
+      spacing: 2
+      Repeater {
+        model: powerMenu.items
+        Rectangle {
+          id: pi
+          required property var modelData
+          required property int index
+          readonly property bool armed: dash.armed === modelData.key
+          width: menuCol.width
+          height: 34
+          radius: 12
+          color: armed ? Theme.urgent : piTap.containsMouse ? Theme.surface : "transparent"
+          Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+          // a line between System info and the rest
+          Rectangle { visible: pi.index === 1; width: parent.width - 16; x: 8; y: -1; height: 1; color: Theme.edge }
+          Icon { id: pic; x: 10; anchors.verticalCenter: parent.verticalCenter; name: modelData.icon; font.pixelSize: 17
+                 color: pi.armed ? Theme.surface : piTap.containsMouse ? Theme.text : Theme.textDim }
+          Text {
+            anchors.left: pic.right; anchors.leftMargin: 10; anchors.verticalCenter: parent.verticalCenter
+            text: pi.armed ? modelData.sure : modelData.label
+            color: pi.armed ? Theme.surface : Theme.text
+            font.family: Theme.fontText; font.pixelSize: 12
+            font.weight: pi.armed ? Font.DemiBold : Font.Normal
+          }
+          MouseArea { id: piTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: dash.power(modelData.key) }
+        }
+      }
+    }
+  }
+
   // A pinned page you unpin while it's showing: back to Home.
   onPagesChanged: if (!pages.some(p => p.key === page)) page = "home"
 
   // The dashboard's real height, so the island can size itself to fit.
-  readonly property int contentHeight: pageArea.y + pageArea.height + Sizes.dashPadding
+  // (tall enough for the power menu while it's open)
+  readonly property int contentHeight: Math.max(pageArea.y + pageArea.height + Sizes.dashPadding,
+                                                powerOpen ? powerMenu.y + powerMenu.height + Sizes.dashPadding : 0)
 }

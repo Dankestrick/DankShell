@@ -7,6 +7,8 @@ Column {
   id: home
   spacing: 10
 
+  function open(key) { Popouts.openCenter(key, home.QsWindow.window ? home.QsWindow.window.screen.name : "") }
+
   // 2 × 2 toggles
   Grid {
     width: parent.width
@@ -30,6 +32,8 @@ Column {
       on: Toggles.bluetooth
       status: !Toggles.bluetooth ? "Off" : Toggles.btConnected > 0 ? Toggles.btConnected + " connected" : "On"
       onClicked: Toggles.toggleBluetooth()
+      hasRightClick: true
+      onRightClicked: home.open("bluetooth")   // find + pair new devices
     }
     ToggleTile {
       width: parent.tileWidth
@@ -40,7 +44,7 @@ Column {
       status: Toggles.gameMode ? "Awake · quiet · fast" : "Off"
       onClicked: Toggles.toggleGameMode()
       hasMore: true
-      onMore: Popouts.openCenter("game", home.QsWindow.window ? home.QsWindow.window.screen.name : "")
+      onMore: home.open("game")
     }
     ToggleTile {
       width: parent.tileWidth
@@ -54,12 +58,28 @@ Column {
 
   MusicCard { width: parent.width; visible: Media.showing }
 
-  Slider {
+  // Volume, with the Audio window button on its left (Volume, EQ, Defaults).
+  Item {
     width: parent.width
-    icon: Audio.muted || Audio.volume === 0 ? "volume_off" : Audio.volume < 0.5 ? "volume_down" : "volume_up"
-    value: Audio.muted ? 0 : Audio.volume
-    onMoved: (v) => Audio.setVolume(v)
-    onIconClicked: Audio.toggleMute()
+    height: 30
+    Rectangle {
+      id: audioBtn
+      width: 30; height: 30; radius: 15
+      color: audioTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surfaceRaised
+      Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+      Icon { anchors.centerIn: parent; name: "tune"; color: audioTap.containsMouse ? Theme.text : Theme.textDim; font.pixelSize: 17 }
+      MouseArea { id: audioTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: home.open("sound") }
+    }
+    Slider {
+      anchors.left: audioBtn.right
+      anchors.leftMargin: 8
+      anchors.right: parent.right
+      height: 30
+      icon: Audio.muted || Audio.volume === 0 ? "volume_off" : Audio.volume < 0.5 ? "volume_down" : "volume_up"
+      value: Audio.muted ? 0 : Audio.volume
+      onMoved: (v) => Audio.setVolume(v)
+      onIconClicked: Audio.toggleMute()
+    }
   }
 
   // Notifications row: count, open the list, clear.
@@ -89,7 +109,7 @@ Column {
     MouseArea {
       anchors.fill: parent
       cursorShape: Qt.PointingHandCursor
-      onClicked: Popouts.openCenter("notifications", home.QsWindow.window ? home.QsWindow.window.screen.name : "")
+      onClicked: home.open("notifications")
     }
     Text {
       anchors.right: parent.right
