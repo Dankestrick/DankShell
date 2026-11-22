@@ -79,6 +79,32 @@ Column {
     return d <= 0 ? "Played today" : d === 1 ? "Played yesterday" : "Played " + d + " days ago"
   }
 
+  // ── Steam itself (same card as the other launcher tabs) ──
+  Card {
+    width: parent.width
+    Item {
+      width: parent.width; height: 44
+      DeviceHeader {
+        width: parent.width - steamBtn.width - 12
+        icon: "joystick"
+        title: "Steam"
+        subtitle: page.games.length ? page.games.length + (page.games.length === 1 ? " game" : " games") + " installed" : "Looking for your games…"
+      }
+      Rectangle {
+        id: steamBtn
+        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+        width: steamRow.implicitWidth + 24; height: 32; radius: 16
+        color: steamTap.containsMouse ? Qt.lighter(Theme.accent, 1.1) : Theme.accent
+        Row {
+          id: steamRow; anchors.centerIn: parent; spacing: 6
+          Icon { width: 16; height: 16; name: "open_in_new"; font.pixelSize: 16; color: Theme.surface; anchors.verticalCenter: parent.verticalCenter }
+          Text { text: "Open Steam"; color: Theme.surface; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+        }
+        MouseArea { id: steamTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: { Quickshell.execDetached(["steam", "steam://open/games"]); Popouts.closeCenter() } }
+      }
+    }
+  }
+
   // ── Game Mode + controller ────────────────────
   Card {
     width: parent.width
