@@ -64,7 +64,7 @@ Home 1.0 modules/pages/Home.qml
 Bluetooth 1.0 modules/pages/Bluetooth.qml
 Power 1.0 modules/pages/Power.qml
 ThemePage 1.0 modules/pages/ThemePage.qml
-Epic 1.0 modules/pages/Epic.qml
+Launcher 1.0 modules/pages/Launcher.qml
 Pandora 1.0 modules/pages/Pandora.qml
 Kraken 1.0 modules/pages/Kraken.qml
 Gravastar 1.0 modules/pages/Gravastar.qml
