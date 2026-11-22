@@ -42,6 +42,7 @@ Singleton {
   // ones (Settings.v.pinned) also sit in the island's top row.
   //   kind "page":   opens its page (in the island when pinned, else Center)
   //   kind "widget": the real widget, with its own dropdown
+  //   kind "launch": a plugin with its own window (OmaRT100, OmaCanon...): a click opens it
   readonly property var catalog: {
     const out = Plugins.active().map(p => ({ key: p.key, name: p.name, icon: p.icon, sub: p.sub || "", kind: "page" }))
     for (const e of entries) {
@@ -49,9 +50,18 @@ Singleton {
       out.push({ key: e.id, name: nameFor(e.id), icon: Widgets.ICONS[e.id] || "extension",
                  sub: Widgets.ABOUT[e.id] || "", kind: "widget", entry: e })
     }
+    for (const p of Installed.all) {
+      if (!p.enabled || p.firstParty || Plugins.byId(p.id) || componentFor(p.id)) continue
+      if (!p.kinds.some(k => k === "overlay" || k === "panel" || k === "menu")) continue
+      if (out.some(c => c.key === p.id)) continue
+      out.push({ key: p.id, name: p.name, icon: Widgets.ICONS[p.id] || "open_in_new",
+                 sub: p.description || "", kind: "launch" })
+    }
     return out
   }
   function item(key) { return catalog.find(c => c.key === key) || null }
+  // Open (or close) a plugin's own window, the way its keybind would.
+  function launch(id) { Quickshell.execDetached(["omarchy-shell", "shell", "toggle", id, "{}"]) }
   function nameFor(id) {
     if (Widgets.NAMES[id]) return Widgets.NAMES[id]
     const reg = registry

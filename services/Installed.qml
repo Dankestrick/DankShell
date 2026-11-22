@@ -19,7 +19,8 @@ Singleton {
   readonly property var items: {
     const rows = all.filter(p => p.kinds.indexOf("bar") < 0).map(p => {
       const page = Plugins.byId(p.id)
-      const hasWidget = !!WidgetHost.componentFor(p.id) || !!WidgetHost.item(p.id)
+      const it = WidgetHost.item(p.id)
+      const hasWidget = !!WidgetHost.componentFor(p.id) || (!!it && it.kind === "widget")
       const opens = p.kinds.some(k => k === "overlay" || k === "panel" || k === "menu")
       return {
         key: page ? page.key : p.id, id: p.id, name: page ? page.name : p.name,

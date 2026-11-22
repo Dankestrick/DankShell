@@ -92,10 +92,13 @@ Item {
         width: modelData.kind === "widget" ? live.implicitWidth : 30
         height: 30
         HeaderButton {
-          visible: modelData.kind === "page"
+          visible: modelData.kind === "page" || modelData.kind === "launch"
           icon: modelData.icon
           lit: dash.page === modelData.key
-          onClicked: dash.openPage(modelData.key)
+          onClicked: {
+            if (modelData.kind === "launch") { dash.closeRequested(); WidgetHost.launch(modelData.key) }
+            else dash.openPage(modelData.key)
+          }
         }
         HostedWidget {
           id: live

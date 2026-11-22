@@ -24,6 +24,8 @@ var NAMES = {
   "crmne.hyprmoncfg": "Displays", "omarchy.system-update": "Updates", "superwhisper.panel": "Superwhisper"
 }
 var ICONS = {
+  "io.github.dankestrick.omart100": "keyboard", "io.github.dankestrick.omacanon": "photo_camera",
+  "io.github.dankestrick.omacircuitlab": "memory",
   "omarchy.menu": "apps", "omarchy.indicators": "notifications_active", "omarchy.tray": "chevron_left",
   "omarchy.keyboard-layout": "keyboard", "amagdy46.dslr-webcam": "videocam", "omamail": "mail",
   "omarchy.dropbox": "cloud_sync", "omarchy.agents": "smart_toy", "io.github.qempexe.plume": "edit",
