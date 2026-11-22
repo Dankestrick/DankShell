@@ -8,7 +8,8 @@ import "../config/Docker.js" as Spaces
 // main row first, the one above after). The pill for the monitor the mouse is
 // on is big and lit. Each pill holds dots for that monitor's workspaces:
 // click a dot to go there. Hover a pill to peek at its window (Hover.qml shows
-// the picture); drag a pill onto another pill to move that window there.
+// the picture); drag a pill onto another pill to move that window there, or
+// drag a dot to carry a window off that workspace without going there.
 // While you drag over a pill it spreads out into that monitor's workspaces
 // (1 · 4 · 7 on the main) so you can drop the window on the one you want.
 Item {
@@ -19,6 +20,7 @@ Item {
   property string dragFrom: ""         // monitor whose window is being dragged
   property string dropOn: ""           // pill under the dragged window
   property int dropWs: 0               // workspace slot under it (0 = the one showing)
+  property int dragWs: 0               // dragged off a workspace's dot: that workspace (0 = the one showing)
   property point dragPos: Qt.point(0, 0)
   readonly property string peekMonitor: dragFrom || hovered
 
@@ -32,7 +34,7 @@ Item {
   property int rev: 0
   function refresh() { Hyprland.refreshMonitors(); Hyprland.refreshToplevels(); bump.restart() }
   Timer { id: bump; interval: 120; onTriggered: root.rev++ }
-  onActiveChanged: if (active) refresh(); else { hovered = ""; dragFrom = ""; dropOn = ""; dropWs = 0 }
+  onActiveChanged: if (active) refresh(); else { hovered = ""; dragFrom = ""; dropOn = ""; dropWs = 0; dragWs = 0 }
   Connections {
     target: Hyprland
     enabled: root.active
@@ -49,13 +51,18 @@ Item {
     if (includeSpecial && ipc.specialWorkspace && ipc.specialWorkspace.id) return ipc.specialWorkspace.id
     return ipc.activeWorkspace ? ipc.activeWorkspace.id : (m.activeWorkspace ? m.activeWorkspace.id : 0)
   }
+  // The workspace a pill stands for right now: the one showing there, or the
+  // one whose dot you're dragging a window off.
+  function sourceWorkspace(name, m) {
+    return name === dragFrom && dragWs ? dragWs : shownWorkspace(m, true)
+  }
   // The window you'd be looking at on that monitor: the most recently focused
-  // one on the workspace showing there.
+  // one on that workspace.
   function windowOn(name) {
     void(rev)
     const m = monitor(name)
     if (!m) return null
-    const ws = shownWorkspace(m, true)
+    const ws = sourceWorkspace(name, m)
     let best = null, bestH = 1e9
     for (const t of Hyprland.toplevels.values) {
       const o = t.lastIpcObject || {}
@@ -71,7 +78,7 @@ Item {
     void(rev)
     const m = monitor(name)
     if (!m) return []
-    const ws = shownWorkspace(m, true)
+    const ws = sourceWorkspace(name, m)
     return Hyprland.toplevels.values.filter(t => {
       const o = t.lastIpcObject || {}
       const wid = o.workspace ? o.workspace.id : (t.workspace ? t.workspace.id : null)
@@ -95,7 +102,7 @@ Item {
     const t = windowOn(from), m = monitor(to)
     if (!t || !m) return
     const ws = wsPicked || shownWorkspace(m, false)
-    if (!ws) return
+    if (!ws || (from === to && ws === sourceWorkspace(from, monitor(from)))) return
     Quickshell.execDetached(["hyprctl", "dispatch",
       'hl.dsp.window.move({ workspace = "' + ws + '", follow = false, window = "address:' + addressOf(t) + '" })'])
     settle.restart()
@@ -112,6 +119,17 @@ Item {
     const p = root.mapToItem(c.slotRow, x, 0)
     const s = c.slotRow.childAt(p.x, c.slotRow.height / 2)
     return s && s.wsId ? s.wsId : 0
+  }
+  // The dot nearest x on a pill's dot row (they're tiny, so a few px either side counts).
+  function dotNear(dotRow, x) {
+    let best = null, bestD = 7
+    for (let i = 0; i < dotRow.children.length; i++) {
+      const d = dotRow.children[i]
+      if (!d.ws) continue
+      const dist = Math.abs(d.x + d.width / 2 - x)
+      if (dist < bestD) { bestD = dist; best = d }
+    }
+    return best
   }
 
   // Moving between pills shouldn't close the peek for a blink.
@@ -209,6 +227,7 @@ Item {
           cursorShape: root.dragFrom !== "" ? Qt.ClosedHandCursor : Qt.PointingHandCursor
           property point start
           property bool dragged: false
+          property int pressWs: 0      // pressed on a dot that isn't showing: drag from that workspace
           onEntered: {
             unhover.stop(); root.pillHover = true; root.pending = pill.monitorName
             root.hovered = pill.monitorName
@@ -216,12 +235,18 @@ Item {
           // Only the pill the mouse was last on counts as left (enter/leave between
           // two pills can arrive in either order).
           onExited: if (root.pending === pill.monitorName) { root.pillHover = false; unhover.restart() }
-          onPressed: (m) => { start = Qt.point(m.x, m.y); dragged = false }
+          onPressed: (m) => {
+            start = Qt.point(m.x, m.y); dragged = false
+            const d = root.dotNear(dots, mapToItem(dots, m.x, m.y).x)
+            pressWs = d && !d.on ? d.ws.id : 0
+          }
           onPositionChanged: (m) => {
             if (!pressed) return
-            if (!dragged && Math.hypot(m.x - start.x, m.y - start.y) > 6 && root.windowOn(pill.monitorName)) {
-              dragged = true
+            if (!dragged && Math.hypot(m.x - start.x, m.y - start.y) > 6) {
+              root.dragWs = pressWs
               root.dragFrom = pill.monitorName
+              if (root.windowOn(pill.monitorName)) dragged = true
+              else { root.dragFrom = ""; root.dragWs = 0 }
             }
             if (dragged) {
               root.dragPos = mapToItem(root, m.x, m.y)
@@ -231,15 +256,14 @@ Item {
           }
           onReleased: {
             // Drop on another monitor, or on a different workspace of this one.
-            if (dragged && root.dropOn && (root.dropOn !== root.dragFrom || root.dropWs))
+            if (dragged && root.dropOn && (root.dropOn !== root.dragFrom || root.dropWs || root.dragWs))
               root.moveWindow(root.dragFrom, root.dropOn, root.dropWs)
-            root.dragFrom = ""; root.dropOn = ""; root.dropWs = 0
+            root.dragFrom = ""; root.dropOn = ""; root.dropWs = 0; root.dragWs = 0
           }
           // A click (no drag) on a dot goes to that workspace.
           onClicked: (m) => {
             if (dragged) return
-            const p = mapToItem(dots, m.x, m.y)
-            const d = dots.childAt(p.x, dots.height / 2)
+            const d = root.dotNear(dots, mapToItem(dots, m.x, m.y).x)
             if (d && d.ws) d.ws.activate()
           }
         }
