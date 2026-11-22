@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import "../../"
 
 // ThemePage — one theme's tab in the Themes window (palette button on the
@@ -10,6 +11,7 @@ Column {
   id: page
   property bool showing: false
   property string slug: ""
+  signal closeRequested()
   spacing: 10
 
   readonly property var t: Themes.list.find(x => x.slug === slug) || null
@@ -61,6 +63,40 @@ Column {
           Text { text: page.inUse ? "In use" : "Use this theme"; color: page.inUse ? Theme.text : Theme.surface; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
         }
         MouseArea { id: useTap; anchors.fill: parent; hoverEnabled: true; enabled: !page.inUse && !page.busy; cursorShape: Qt.PointingHandCursor; onClicked: Themes.apply(page.slug) }
+      }
+    }
+  }
+
+  // ── Everything else lives in Omarchy ──────────
+  // DankShell doesn't redo it all: this opens Omarchy's own Appearance menu
+  // (theme, background, font, bar, window corners/opacity, branding).
+  Card {
+    width: parent.width
+    Item {
+      width: parent.width; height: 36
+      Icon { id: omIcon; anchors.verticalCenter: parent.verticalCenter; name: "tune"; color: Theme.textDim; font.pixelSize: 18 }
+      Column {
+        anchors.left: omIcon.right; anchors.leftMargin: 10
+        anchors.right: omBtn.left; anchors.rightMargin: 10
+        anchors.verticalCenter: parent.verticalCenter
+        Text { width: parent.width; elide: Text.ElideRight; text: "Omarchy Appearance"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
+        Text { width: parent.width; elide: Text.ElideRight; text: "Fonts, bar, window corners and opacity, branding"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10 }
+      }
+      Rectangle {
+        id: omBtn
+        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+        width: omRow.implicitWidth + 20; height: 28; radius: 14
+        color: omTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface
+        Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+        Row {
+          id: omRow; anchors.centerIn: parent; spacing: 5
+          Icon { width: 15; height: 15; name: "open_in_new"; font.pixelSize: 15; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
+          Text { text: "Open"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+        }
+        MouseArea {
+          id: omTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+          onClicked: { page.closeRequested(); Quickshell.execDetached(["omarchy", "menu", "summon", "appearance"]) }
+        }
       }
     }
   }
