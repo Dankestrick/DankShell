@@ -47,7 +47,8 @@ PanelWindow {
   //   settings: the Settings sections
   //   device:   Games, Camera
   //   audio:    Volume, EQ, Defaults
-  //   notifications, system, bluetooth: one page each, no sidebar (solo)
+  //   notifications: Unread, Read, Archive
+  //   system, bluetooth: one page each, no sidebar (solo)
   readonly property var gridTabs: [
     { key: "grid-running", group: "Running", icon: "play_circle", words: "running on active",
       sub: "Plugins you have on. Click one to use it." },
@@ -81,9 +82,16 @@ PanelWindow {
                  words: p.id + " " + p.description, plugin: p, pinnable: !!WidgetHost.item(p.key),
                  url: p.use === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
                                        : Qt.resolvedUrl("PluginPage.qml") })
-    out.push({ key: "notifications", mode: "notifications", group: "Notifications", name: "Notifications", icon: "notifications",
-               sub: "Click to read it all, click again to clear it. × clears it right away.",
-               url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
+    // Notifications window: Unread / Read / Archive (Home's notifications row, Super+N).
+    out.push({ key: "notifications", mode: "notifications", group: "Notifications", name: "Unread", icon: "notifications_unread",
+               sub: "Today's you haven't opened. Click one to read it; × deletes it.", props: { stage: "unread" },
+               url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages unread new" })
+    out.push({ key: "notif-read", mode: "notifications", group: "Notifications", name: "Read", icon: "drafts",
+               sub: "Today's you've opened.", props: { stage: "read" },
+               url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification read opened today" })
+    out.push({ key: "notif-archive", mode: "notifications", group: "Notifications", name: "Archive", icon: "inventory_2",
+               sub: "From before today. Omarchy keeps them for 24 hours.", props: { stage: "archive" },
+               url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification archive yesterday old" })
     out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
                sub: "Game Mode, your controller, and your Steam games.",
                url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })
@@ -138,6 +146,16 @@ PanelWindow {
     // the page you're on stays in the list while you type (Updates filters with the same box)
     return q === "" ? pages.filter(p => !p.tucked)
          : pages.filter(p => p.key === Popouts.center || (p.name + " " + p.words + " " + p.group).toLowerCase().includes(q))
+  }
+
+  // Live numbers next to a sidebar tab (kept out of allPages so a new
+  // notification doesn't reload the page you're on).
+  function liveCount(p) {
+    const n = p.key === "notifications" ? Notifications.unread.length
+            : p.key === "notif-read" ? Notifications.read.length
+            : p.key === "notif-archive" ? Notifications.archive.length : -1
+    if (n >= 0) return { text: n > 0 ? String(n) : "", alert: p.key === "notifications" && n > 0 }
+    return { text: p.count || "", alert: false }
   }
 
   function go(d) {
@@ -319,7 +337,7 @@ PanelWindow {
                 }
                 // Live status (battery, playing, unread...) on the right.
                 Text {
-                  readonly property var st: modelData.plugin ? Status.of(modelData.key) : ({ text: modelData.count || "", alert: false })
+                  readonly property var st: modelData.plugin ? Status.of(modelData.key) : win.liveCount(modelData)
                   anchors.right: parent.right
                   anchors.rightMargin: 10
                   anchors.verticalCenter: parent.verticalCenter

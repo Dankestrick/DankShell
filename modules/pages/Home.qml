@@ -102,7 +102,7 @@ Column {
       anchors.left: bell.right
       anchors.leftMargin: 10
       anchors.verticalCenter: parent.verticalCenter
-      text: Notifications.count > 0 ? Notifications.count + (Notifications.count === 1 ? " notification" : " notifications") : "All caught up"
+      text: Notifications.count > 0 ? Notifications.count + " unread" : "All caught up"
       color: Notifications.count > 0 ? Theme.text : Theme.textDim
       font.family: Theme.fontText
       font.pixelSize: 12
@@ -117,7 +117,7 @@ Column {
       anchors.rightMargin: 14
       anchors.verticalCenter: parent.verticalCenter
       visible: Notifications.count > 0
-      text: "Clear all"
+      text: "Mark all read"
       color: Theme.accent
       font.family: Theme.fontText
       font.pixelSize: 11
@@ -126,7 +126,7 @@ Column {
         anchors.fill: parent
         anchors.margins: -6
         cursorShape: Qt.PointingHandCursor
-        onClicked: Notifications.clearAll()
+        onClicked: Notifications.markAllRead()
       }
     }
   }
