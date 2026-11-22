@@ -79,14 +79,21 @@ Column {
     }
     Item {
       width: parent.width; height: 20
-      Head { anchors.verticalCenter: parent.verticalCenter; text: "Colors · click one to light up the dashboard with it" }
-      Row {
+      Head { anchors.verticalCenter: parent.verticalCenter; text: "Colors · click one for the dashboard" }
+      // "Theme's own": a small pill, the click area outside the Row so it doesn't take a slot.
+      Rectangle {
         anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
         visible: colorsCard.pick !== ""
-        spacing: 3
-        Icon { name: "undo"; color: Theme.accent; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
-        Text { text: "Theme's own"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
-        MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: colorsCard.setPick("") }
+        width: undoRow.implicitWidth + 16; height: 24; radius: 12
+        color: undoTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface
+        Row {
+          id: undoRow
+          anchors.centerIn: parent
+          spacing: 4
+          Icon { width: 14; height: 14; name: "undo"; color: Theme.accent; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+          Text { text: "Theme's own"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+        }
+        MouseArea { id: undoTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: colorsCard.setPick("") }
       }
     }
     Row {
