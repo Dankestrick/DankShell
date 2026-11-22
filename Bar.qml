@@ -118,6 +118,8 @@ Item {
     function settings(): void { center("@settings") }
     function plugins(): void { center("@plugins") }
     function gamemode(): void { Toggles.toggleGameMode() }
+    // What colors DankShell is using (for fixing theme color problems).
+    function colors(): string { return JSON.stringify({ theme: String(Theme.accent), omarchy: String(Color.accent), rev: Theme.rev }) }
     // The Camera page's Open big / Close big.
     function cameraBig(): void { if (Webcam.bigOpen) Webcam.closeBig(); else Webcam.openBig() }
     // A look inside one widget (for fixing ones that show nothing).
@@ -142,4 +144,10 @@ Item {
     }
     function close(): void { for (const i of islands.instances) i.state = "closed"; Popouts.closeCenter() }
   }
+
+  // ── Omarchy's colors into DankShell's Theme ───
+  Binding { target: Theme; property: "accent"; value: Color.accent }
+  Binding { target: Theme; property: "urgent"; value: Color.urgent }
+  Binding { target: Theme; property: "fg"; value: Color.foreground }
+  Binding { target: Theme; property: "bg"; value: Color.background }
 }

@@ -17,9 +17,29 @@ Singleton {
 
   Component.onCompleted: reload()   // ready before the Themes window asks
 
+  // Desktop accent picks from the Themes window: { theme: { orig, name } }
+  // (scripts/theme-accent changes the theme itself, so everything follows).
+  property var accents: ({})
+  property string accentBusy: ""
+  readonly property string accentScript: Qt.resolvedUrl("../scripts/theme-accent").toString().replace("file://", "")
+  function setAccent(slug, name) {
+    if (accentBusy !== "") return
+    const t = list.find(x => x.slug === slug)
+    accentBusy = slug
+    accentProc.command = name === "" ? [accentScript, slug, "reset"] : [accentScript, slug, String(color(t, name)), name]
+    accentProc.running = true
+  }
+  Process { id: accentProc; onExited: { themes.accentBusy = ""; themes.reload() } }
+  Process {
+    id: accentList
+    command: [themes.accentScript, "list"]
+    stdout: StdioCollector { onStreamFinished: { try { themes.accents = JSON.parse(text) || {} } catch (e) { } } }
+  }
+
   readonly property string scriptPath: Qt.resolvedUrl("../scripts/themes.py").toString().replace("file://", "")
 
   function reload() {
+    accentList.running = true
     if (loader.running) return
     loading = true
     loader.running = true

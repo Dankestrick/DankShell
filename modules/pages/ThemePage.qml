@@ -117,20 +117,19 @@ Column {
     id: colorsCard
     width: parent.width
     visible: !!page.t
-    // Click a color to make it DankShell's highlight for this theme (saved per theme).
-    readonly property string pick: (Settings.v.themeAccent || {})[page.slug] || ""
-    function setPick(name) {
-      const m = Object.assign({}, Settings.v.themeAccent || {})
-      if (name === "" || name === "accent") delete m[page.slug]; else m[page.slug] = name
-      Settings.set("themeAccent", m)
-    }
+    // Click a color to make it this theme's accent for the whole desktop
+    // (window borders, highlights, sliders, the bar, every app that follows
+    // the theme). Theme's own puts the original back.
+    readonly property var picked: Themes.accents[page.slug] || null
+    readonly property string pick: picked ? (picked.name || "") : ""
+    function setPick(name) { Themes.setAccent(page.slug, name) }
     Item {
       width: parent.width; height: 20
-      Head { anchors.verticalCenter: parent.verticalCenter; text: "Colors · click one for the dashboard" }
+      Head { anchors.verticalCenter: parent.verticalCenter; text: Themes.accentBusy === page.slug ? "Colors · repainting…" : "Colors · click one for your accent everywhere" }
       // "Theme's own": a small pill, the click area outside the Row so it doesn't take a slot.
       Rectangle {
         anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-        visible: colorsCard.pick !== ""
+        visible: !!colorsCard.picked
         width: undoRow.implicitWidth + 16; height: 24; radius: 12
         color: undoTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface
         Row {
@@ -154,7 +153,7 @@ Column {
           width: 50
           Rectangle {
             id: dot
-            readonly property bool can: modelData !== "background"   // the background can't be the highlight
+            readonly property bool can: modelData !== "background" && modelData !== "accent" && Themes.accentBusy === ""   // the background can't be the accent
             readonly property bool picked: (colorsCard.pick === "" ? "accent" : colorsCard.pick) === modelData
             anchors.horizontalCenter: parent.horizontalCenter
             width: 30; height: 30; radius: 15

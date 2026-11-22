@@ -9,13 +9,13 @@ import qs.Commons
 //   2. text: bright, with a dimmer version for minor things
 //   3. accent: the ONE bright color, only for "you are here"
 QtObject {
-  // Omarchy's colors, read again once everything has started (read too
-  // early they can come back empty, and a color that started empty never
-  // updates). Fallbacks keep the island readable in that first moment.
+  // Omarchy's colors. Bar.qml keeps these in step with Omarchy's Color
+  // (Color can't be reached from in here, so it's handed in from there:
+  // startup, theme switches and a new accent from the Themes window all
+  // update them live). The values below only cover the first moment.
   property int rev: 0
-  Component.onCompleted: Qt.callLater(() => rev++)
-  readonly property color fg: { void(rev); return Color.foreground || "#cacccc" }
-  readonly property color bg: { void(rev); return Color.background || "#101315" }
+  property color fg: "#cacccc"
+  property color bg: "#101315"
 
   // ── 1. Surfaces ───────────────────────────────
   property color surface: Settings.v.pureBlack ? "#000000" : bg  // the island itself (his is pure black)
@@ -27,14 +27,8 @@ QtObject {
   property color textDim: Qt.rgba(fg.r, fg.g, fg.b, 0.6)
 
   // ── 3. Accent ─────────────────────────────────
-  // Your pick from the Themes window (one of the theme's own colors), else the theme's accent.
-  readonly property string accentPick: (Settings.v.themeAccent || {})[Themes.current] || ""
-  property color accent: {
-    void(rev)
-    const t = accentPick !== "" ? Themes.list.find(x => x.slug === Themes.current) : null
-    return t ? Themes.color(t, accentPick) : (Color.accent || "#7aa2f7")
-  }
-  property color urgent: { void(rev); return Color.urgent || "#a55555" }   // warnings (low battery)
+  property color accent: "#7aa2f7"
+  property color urgent: "#a55555"   // warnings (low battery)
 
   // ── Fonts ─────────────────────────────────────
   // saneAspect uses "SF Compact Display" (AUR: apple-fonts). Until that's

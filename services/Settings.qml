@@ -33,9 +33,7 @@ Singleton {
     glance: [], glanceHidden: [],
     lyricsOpen: true,   // Pandora page: lyrics card open or folded   // Glance row order ("tray:<id>" or a widget id) and hidden tray apps   // appid -> "mod" | "vanilla": what a game card's Play does
     // Windows (Hyprland overrides written to ~/.config/hypr/dankshell.lua)
-    hypr: { "general:gaps_in": 10, "general:gaps_out": 20 },
-    // Themes window: theme slug -> which of its colors lights up DankShell ("red", "cyan"...)
-    themeAccent: ({})
+    hypr: { "general:gaps_in": 10, "general:gaps_out": 20 }
   })
 
   function set(key, value) {
@@ -108,7 +106,6 @@ Singleton {
       property var glanceHidden: []
       property bool lyricsOpen: true
       property var hypr: ({ "general:gaps_in": 10, "general:gaps_out": 20 })
-      property var themeAccent: ({})
     }
   }
 }

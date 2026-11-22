@@ -1,0 +1,66 @@
+#!/bin/bash
+# Set an Omarchy theme's accent color (the whole desktop: window borders,
+# highlights, sliders, the bar, DankShell, OmaPandora...), or put the theme's
+# own back. Used by the Themes window's color dots.
+#
+#   theme-accent <theme> <#rrggbb> <name>   use that color (name = "green"...)
+#   theme-accent <theme> reset              the theme's own accent again
+#   theme-accent list                       JSON: { theme: { orig, name } }
+#
+# The theme's colors.toml gets the new accent. A theme that ships with
+# Omarchy gets a copy in ~/.config/omarchy/themes/<theme>/ (Omarchy's own way
+# to customize one). The first time, the original accent is saved in
+# ~/.local/state/dankshell/theme-accents.json so reset can restore it.
+# If it's the theme in use, `omarchy theme refresh` repaints everything
+# (your wallpaper stays).
+set -euo pipefail
+
+STATE="$HOME/.local/state/dankshell/theme-accents.json"
+USER_THEMES="$HOME/.config/omarchy/themes"
+mkdir -p "$(dirname "$STATE")"
+[[ -s $STATE ]] || echo '{}' >"$STATE"
+
+if [[ ${1:-} == list ]]; then cat "$STATE"; exit 0; fi
+
+theme=${1:?theme}
+what=${2:?color or reset}
+[[ $theme =~ ^[A-Za-z0-9._-]+$ ]] || { echo "bad theme name" >&2; exit 1; }
+
+dir=$(omarchy theme dir "$theme" 2>/dev/null || true)
+[[ -n $dir && -f $dir/colors.toml ]] || { echo "no colors.toml for $theme" >&2; exit 1; }
+if [[ $dir != "$USER_THEMES/"* ]]; then
+  # a built-in theme: customize it the Omarchy way, with a copy in ~/.config
+  mkdir -p "$USER_THEMES/$theme"
+  [[ -f $USER_THEMES/$theme/colors.toml ]] || cp "$dir/colors.toml" "$USER_THEMES/$theme/colors.toml"
+  dir="$USER_THEMES/$theme"
+fi
+file="$dir/colors.toml"
+
+current_accent() { sed -nE 's/^accent[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' "$file" | head -1; }
+set_accent() {
+  if grep -qE '^accent[[:space:]]*=' "$file"; then
+    sed -i -E "s/^accent[[:space:]]*=.*/accent = \"$1\"/" "$file"
+  else
+    sed -i "1i accent = \"$1\"" "$file"
+  fi
+}
+
+tmp=$(mktemp)
+if [[ $what == reset ]]; then
+  orig=$(jq -r --arg t "$theme" '.[$t].orig // empty' "$STATE")
+  [[ -n $orig ]] || exit 0   # never changed
+  set_accent "$orig"
+  jq --arg t "$theme" 'del(.[$t])' "$STATE" >"$tmp" && cat "$tmp" >"$STATE"
+else
+  [[ $what =~ ^#[0-9A-Fa-f]{6}$ ]] || { echo "bad color" >&2; rm -f "$tmp"; exit 1; }
+  name=${3:-}
+  orig=$(jq -r --arg t "$theme" '.[$t].orig // empty' "$STATE")
+  [[ -n $orig ]] || orig=$(current_accent)
+  set_accent "$what"
+  jq --arg t "$theme" --arg o "$orig" --arg n "$name" '.[$t] = { orig: $o, name: $n }' "$STATE" >"$tmp" && cat "$tmp" >"$STATE"
+fi
+rm -f "$tmp"
+
+if [[ $(cat "$HOME/.local/state/omarchy/current/theme.name" 2>/dev/null) == "$theme" ]]; then
+  omarchy theme refresh >/dev/null 2>&1 || true
+fi
