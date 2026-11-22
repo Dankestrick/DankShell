@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import ".."
 
 // Themes — your Omarchy themes for the theme switcher: name, colors and the
 // wallpaper Omarchy remembers for each one. Applying runs `omarchy theme set`,
@@ -14,6 +15,8 @@ Singleton {
   property bool loading: false
   property string applying: ""   // slug being applied right now
 
+  Component.onCompleted: reload()   // ready before the Themes window asks
+
   readonly property string scriptPath: Qt.resolvedUrl("../scripts/themes.py").toString().replace("file://", "")
 
   function reload() {
@@ -22,9 +25,12 @@ Singleton {
     loader.running = true
   }
 
-  function apply(slug) {
+  // Apply a theme; thenWallpaper (a path) goes up right after it.
+  property string thenWallpaper: ""
+  function apply(slug, wall) {
     if (!slug || applying !== "") return
     applying = slug
+    thenWallpaper = wall || ""
     setter.command = ["omarchy", "theme", "set", slug]
     setter.running = true
   }
@@ -57,6 +63,10 @@ Singleton {
 
   Process {
     id: setter
-    onExited: { themes.applying = ""; themes.reload() }
+    onExited: {
+      themes.applying = ""
+      if (themes.thenWallpaper !== "") { Wallpapers.apply(themes.thenWallpaper); themes.thenWallpaper = "" }
+      themes.reload(); Wallpapers.reload()
+    }
   }
 }

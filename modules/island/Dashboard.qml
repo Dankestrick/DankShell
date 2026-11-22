@@ -6,7 +6,7 @@ import "../../"
 // the top-left corner (see Island.qml). This file leaves room for it.
 //
 // Top left:  the date under the clock (click it for the Journal).
-// Top right: your pinned plugins, then themes, wallpapers, games, plugins,
+// Top right: your pinned plugins, then themes (+ wallpapers), games, plugins,
 // settings, power (opens the Power window:
 // System info, Lock, Screensaver, Restart, Power off).
 //   A pinned page plugin (Pandora, Kraken...) opens right here, sliding in
@@ -22,8 +22,6 @@ Item {
   property string page: "home"
 
   signal closeRequested()
-  signal themesRequested()
-  signal wallsRequested()
   signal pageRequested(string key)   // open this in the Center window
 
   function reset() { page = "home" }
@@ -108,8 +106,7 @@ Item {
       }
     }
     Rectangle { visible: dash.pins.length > 0; width: 1; height: 16; anchors.verticalCenter: parent.verticalCenter; color: Theme.edge }
-    HeaderButton { icon: "palette"; onClicked: dash.themesRequested() }
-    HeaderButton { icon: "wallpaper"; onClicked: dash.wallsRequested() }
+    HeaderButton { icon: "palette"; onClicked: dash.pageRequested("theme:" + Themes.current) }
     HeaderButton { icon: "joystick"; onClicked: dash.pageRequested("game") }
     HeaderButton { icon: "extension"; onClicked: dash.pageRequested("@plugins") }
     HeaderButton { icon: "settings"; onClicked: dash.pageRequested("@settings") }

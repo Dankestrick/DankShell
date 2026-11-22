@@ -29,10 +29,6 @@ QtObject {
   property int dashPadding: 16      // space between the dashboard's edge and its cards
   property int cardRadius: 18       // corner rounding of cards inside the dashboard
 
-  // ── Theme switcher ────────────────────────────
-  property int themesWidth: 400     // width of the theme switcher
-  property int wallsWidth: 860      // width of the wallpaper switcher
-
   // ── Center window (plugins + settings) ───────
   property int centerWidth: 780
   property int centerHeight: 720

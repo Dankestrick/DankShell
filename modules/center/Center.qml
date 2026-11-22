@@ -48,6 +48,7 @@ PanelWindow {
   //   game:     Games (one page, no sidebar)
   //   audio:    Volume, EQ, Defaults
   //   notifications: Unread, Read, Archive
+  //   themes:   a tab per theme (colors + wallpapers)
   //   power:    System info, Lock, Screensaver, Restart, Power off
   //   bluetooth: one page, no sidebar, no sidebar (solo)
   readonly property var gridTabs: [
@@ -101,6 +102,11 @@ PanelWindow {
     out.push({ key: "game", mode: "game", group: "Games", name: "Games", icon: "joystick",
                sub: "Game Mode, your controller, and your Steam games.",
                url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })
+    // Themes window (the palette button): a tab per installed theme, its accent as the dot.
+    for (const t of Themes.list)
+      out.push({ key: "theme:" + t.slug, mode: "themes", group: "Themes", name: t.name, icon: "palette",
+                 swatch: Themes.color(t, "accent"), sub: "Its colors and wallpapers. Click a wallpaper to put it up.",
+                 props: { slug: t.slug }, url: Qt.resolvedUrl("../pages/ThemePage.qml"), words: "theme colors wallpaper " + t.slug })
     // Power window (the power button at the end of the dashboard's top row).
     out.push({ key: "monitor", mode: "power", group: "Power", name: "System info", icon: "monitoring",
                sub: "CPU, memory and GPU, live.",
@@ -177,7 +183,7 @@ PanelWindow {
     if (shown.length) Popouts.center = shown[(i + d + shown.length) % shown.length].key
   }
 
-  onWantedChanged: if (wanted) { search.text = ""; takeKeys(); Installed.reload(); PluginManager.checkUpdates(false) }
+  onWantedChanged: if (wanted) { search.text = ""; takeKeys(); Installed.reload(); PluginManager.checkUpdates(false); Themes.reload() }
   onSoloChanged: if (wanted) takeKeys()
   // The search box has the keys; a solo window has no search box, so the card does.
   function takeKeys() { if (solo) card.forceActiveFocus(); else search.forceActiveFocus() }
@@ -193,7 +199,11 @@ PanelWindow {
   Timer {
     id: lostPage
     interval: 1200
-    onTriggered: if (win.wanted && Popouts.center !== "" && Popouts.center.charAt(0) !== "@" && !win.current) Popouts.center = "getplugins"
+    onTriggered: if (win.wanted && Popouts.center !== "" && Popouts.center.charAt(0) !== "@" && !win.current) {
+      // a theme that's gone (or not listed yet): the theme in use
+      if (Popouts.center.indexOf("theme:") === 0) { if (!Themes.loading && Themes.current) Popouts.center = "theme:" + Themes.current }
+      else Popouts.center = "getplugins"
+    }
   }
   Connections {
     target: PluginManager
@@ -333,9 +343,12 @@ PanelWindow {
                   x: 6
                   anchors.verticalCenter: parent.verticalCenter
                   width: 28; height: 28; radius: 14
-                  color: parent.here ? Theme.accent : Theme.surfaceRaised
+                  // a theme tab shows the theme's accent color instead of an icon
+                  color: modelData.swatch ? modelData.swatch : parent.here ? Theme.accent : Theme.surfaceRaised
+                  border.width: modelData.swatch && parent.here ? 2 : 0
+                  border.color: Theme.text
                   Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
-                  Icon { anchors.centerIn: parent; name: modelData.icon; filled: parent.parent.here; color: parent.parent.here ? Theme.surface : Theme.textDim; font.pixelSize: 15 }
+                  Icon { visible: !modelData.swatch; anchors.centerIn: parent; name: modelData.icon; filled: parent.parent.here; color: parent.parent.here ? Theme.surface : Theme.textDim; font.pixelSize: 15 }
                 }
                 Text {
                   anchors.left: dot.right

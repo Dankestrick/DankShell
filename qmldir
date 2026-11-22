@@ -57,14 +57,13 @@ HostedWidget 1.0 components/HostedWidget.qml
 Island 1.0 modules/island/Island.qml
 Hover 1.0 modules/island/Hover.qml
 Dashboard 1.0 modules/island/Dashboard.qml
-ThemeSwitcher 1.0 modules/island/ThemeSwitcher.qml
-WallpaperSwitcher 1.0 modules/island/WallpaperSwitcher.qml
 Center 1.0 modules/center/Center.qml
 
 # modules/pages/ — one file per dashboard page
 Home 1.0 modules/pages/Home.qml
 Bluetooth 1.0 modules/pages/Bluetooth.qml
 Power 1.0 modules/pages/Power.qml
+ThemePage 1.0 modules/pages/ThemePage.qml
 Pandora 1.0 modules/pages/Pandora.qml
 Kraken 1.0 modules/pages/Kraken.qml
 Gravastar 1.0 modules/pages/Gravastar.qml

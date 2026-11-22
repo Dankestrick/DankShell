@@ -24,13 +24,11 @@ PanelWindow {
   property bool hidden: false        // Omarchy's "hide bar" toggle
   property string state: "closed"
   readonly property bool isOpen: state === "open"
-  readonly property bool isThemes: state === "themes"
-  readonly property bool isWalls: state === "walls"
-  readonly property bool held: isOpen || isThemes || isWalls   // opened on purpose: hover doesn't close it
+  readonly property bool held: isOpen   // opened on purpose: hover doesn't close it
 
   anchors { top: true; left: true; right: true }
   color: "transparent"
-  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight + 300, dashboard.contentHeight, themeSwitcher.contentHeight, wallSwitcher.contentHeight, hostedCard ? dashboard.headerHeight + hostedCard.height + 20 : 0) + 24  // room to grow into
+  implicitHeight: Sizes.reserved + Math.max(Sizes.hoverHeight + 300, dashboard.contentHeight, hostedCard ? dashboard.headerHeight + hostedCard.height + 20 : 0) + 24  // room to grow into
   exclusiveZone: hidden ? 0 : Sizes.reserved
   WlrLayershell.namespace: "dankshell-island"
   WlrLayershell.layer: WlrLayer.Top
@@ -92,8 +90,6 @@ PanelWindow {
   }
   function open() { openTimer.stop(); closeTimer.stop(); state = "open"; keys.forceActiveFocus() }
   function close() { state = hover.hovered ? "hover" : "closed" }
-  function showThemes() { openTimer.stop(); closeTimer.stop(); state = "themes"; themeSwitcher.reset() }
-  function showWalls() { openTimer.stop(); closeTimer.stop(); state = "walls"; wallSwitcher.reset() }
 
   // A click anywhere outside the island closes the dashboard.
   HyprlandFocusGrab {
@@ -133,15 +129,11 @@ PanelWindow {
 
     readonly property int closedWidth: Math.max(Sizes.collapsedWidth, clock.closedWidth + Sizes.barHeight)
 
-    width: island.isWalls ? Sizes.wallsWidth
-         : island.isThemes ? Sizes.themesWidth
-         : island.isOpen ? island.dashWidth
+    width: island.isOpen ? island.dashWidth
          : island.state === "hover" ? Sizes.hoverWidth
          : island.state === "bubble" ? closedWidth + Sizes.hoverLift * 2
          : closedWidth
-    height: island.isWalls ? wallSwitcher.contentHeight
-          : island.isThemes ? themeSwitcher.contentHeight
-          : island.isOpen && island.hostedCard ? dashboard.headerHeight + island.hostedCard.height + Sizes.dashPadding / 2
+    height: island.isOpen && island.hostedCard ? dashboard.headerHeight + island.hostedCard.height + Sizes.dashPadding / 2
           : island.isOpen ? Math.max(Sizes.dashHeight, dashboard.contentHeight)
           : island.state === "hover" ? Sizes.hoverHeight + hoverCard.extra
           : island.state === "bubble" ? Sizes.barHeight + Sizes.hoverLift
@@ -182,8 +174,6 @@ PanelWindow {
       hosting: !!island.hostedCard
       id: dashboard
       onCloseRequested: island.state = "closed"
-      onThemesRequested: island.showThemes()
-      onWallsRequested: island.showWalls()
       onPageRequested: (key) => { island.state = "closed"; Popouts.openCenter(key, island.modelData.name, true) }
       width: island.dashWidth
       height: Math.max(Sizes.dashHeight, contentHeight)
@@ -191,30 +181,6 @@ PanelWindow {
       anchors.top: parent.top
       opacity: island.isOpen ? 1 : 0
       visible: opacity > 0
-      Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
-    }
-
-    ThemeSwitcher {
-      id: themeSwitcher
-      width: Sizes.themesWidth
-      height: contentHeight
-      anchors.horizontalCenter: parent.horizontalCenter
-      anchors.top: parent.top
-      opacity: island.isThemes ? 1 : 0
-      visible: opacity > 0
-      onCloseRequested: island.state = "closed"
-      Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
-    }
-
-    WallpaperSwitcher {
-      id: wallSwitcher
-      width: Sizes.wallsWidth
-      height: contentHeight
-      anchors.horizontalCenter: parent.horizontalCenter
-      anchors.top: parent.top
-      opacity: island.isWalls ? 1 : 0
-      visible: opacity > 0
-      onCloseRequested: island.state = "closed"
       Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
     }
 
@@ -226,8 +192,6 @@ PanelWindow {
 
       text: Time.hhmm
       color: Theme.text
-      opacity: island.isThemes || island.isWalls ? 0 : 1
-      Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
       font.family: Theme.fontDisplay
       font.weight: big ? Font.Bold : Theme.clockWeight
       font.pixelSize: island.isOpen ? 24 : island.state === "hover" ? 28 : Theme.clockSize

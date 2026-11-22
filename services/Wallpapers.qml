@@ -9,7 +9,8 @@ import Quickshell.Io
 Singleton {
   id: walls
 
-  property var items: []          // [{ path, name, mine }]
+  property var items: []          // [{ path, name, mine, theme }]
+  Component.onCompleted: reload()
   property string current: ""     // path of the wallpaper on screen
   property string applying: ""
 
@@ -37,5 +38,5 @@ Singleton {
       }
     }
   }
-  Process { id: setter; onExited: walls.applying = "" }
+  Process { id: setter; onExited: { walls.applying = ""; walls.reload() } }
 }

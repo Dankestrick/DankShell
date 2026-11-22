@@ -107,8 +107,9 @@ Item {
     function toggle(): void { const i = root.focusedIsland(); if (i) { if (i.isOpen) i.state = "closed"; else i.open() } }
     function open(): void { const i = root.focusedIsland(); if (i) i.open() }
     function page(name: string): void { const i = root.focusedIsland(); if (i) i.showPage(name) }
-    function themes(): void { const i = root.focusedIsland(); if (i) { if (i.isThemes) i.state = "closed"; else i.showThemes() } }
-    function walls(): void { const i = root.focusedIsland(); if (i) { if (i.isWalls) i.state = "closed"; else i.showWalls() } }
+    // The Themes window, on the theme in use (wallpapers live there too).
+    function themes(): void { center(Popouts.mode === "themes" && Popouts.center !== "" ? Popouts.center : "theme:" + Themes.current) }
+    function walls(): void { themes() }
     function center(name: string): void {
       // The same key again closes it.
       if (Popouts.center !== "" && (name === "" || Popouts.center === name || name === "@" + Popouts.mode)) { Popouts.closeCenter(); return }

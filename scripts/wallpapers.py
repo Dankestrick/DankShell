@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """List wallpapers for DankShell's wallpaper switcher. Prints JSON:
-{"current": "<path>", "theme": "<slug>", "items": [{"path", "name", "mine"}]}
+{"current": "<path>", "theme": "<slug>", "items": [{"path", "name", "mine", "theme"}]}
 "mine" = it belongs to the theme in use (the "This theme" filter). The rest
 come from every other theme and from ~/GitDank/DankWallpapers.
 Folders are the same ones `omarchy theme bg next` cycles through."""
@@ -46,23 +46,23 @@ except OSError:
 seen, items = set(), []
 
 
-def add(paths, mine):
+def add(paths, mine, theme=""):
     for p in paths:
         if str(p) in seen:
             continue
         seen.add(str(p))
-        items.append({"path": str(p), "name": p.stem.replace("-", " ").replace("_", " "), "mine": mine})
+        items.append({"path": str(p), "name": p.stem.replace("-", " ").replace("_", " "), "mine": mine, "theme": theme})
 
 
 for d in theme_folders(current_theme):
-    add(images(d), True)
+    add(images(d), True, current_theme)
 slugs = set()
 for root in (USER_BGS, USER_THEMES, SYS_THEMES):
     if root.is_dir():
         slugs |= {p.name for p in root.iterdir() if p.is_dir()}
 for slug in sorted(slugs - {current_theme}):
     for d in theme_folders(slug):
-        add(images(d), False)
+        add(images(d), False, slug)
 for d in EXTRA:
     add(images(d, 2), False)
 
