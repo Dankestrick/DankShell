@@ -45,9 +45,9 @@ PanelWindow {
   // Three kinds of window, each with only its own things in the sidebar:
   //   plugins:  All plugins, a grid tab per kind (Running, Background, Omarchy…), Updates
   //   settings: the Settings sections
-  //   device:   Notifications, Games, Camera
+  //   device:   Games, Camera
   //   audio:    Volume, EQ, Defaults
-  //   system, bluetooth: one page each, no sidebar (solo)
+  //   notifications, system, bluetooth: one page each, no sidebar (solo)
   readonly property var gridTabs: [
     { key: "grid-running", group: "Running", icon: "play_circle", words: "running on active",
       sub: "Plugins you have on. Click one to use it." },
@@ -81,7 +81,7 @@ PanelWindow {
                  words: p.id + " " + p.description, plugin: p, pinnable: !!WidgetHost.item(p.key),
                  url: p.use === "page" ? Qt.resolvedUrl("../pages/" + p.key.charAt(0).toUpperCase() + p.key.slice(1) + ".qml")
                                        : Qt.resolvedUrl("PluginPage.qml") })
-    out.push({ key: "notifications", mode: "device", group: "Device", name: "Notifications", icon: "notifications",
+    out.push({ key: "notifications", mode: "notifications", group: "Notifications", name: "Notifications", icon: "notifications",
                sub: "Click to read it all, click again to clear it. × clears it right away.",
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification alerts messages clear" })
     out.push({ key: "game", mode: "device", group: "Device", name: "Games", icon: "sports_esports",
