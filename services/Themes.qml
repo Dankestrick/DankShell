@@ -22,11 +22,13 @@ Singleton {
   property var accents: ({})
   property string accentBusy: ""
   readonly property string accentScript: Qt.resolvedUrl("../scripts/theme-accent").toString().replace("file://", "")
-  function setAccent(slug, name) {
+  // name = one of the theme's colors ("green"), "custom" with hex, or "" = the theme's own.
+  function setAccent(slug, name, hex) {
     if (accentBusy !== "") return
     const t = list.find(x => x.slug === slug)
     accentBusy = slug
-    accentProc.command = name === "" ? [accentScript, slug, "reset"] : [accentScript, slug, String(color(t, name)), name]
+    const value = name === "custom" ? String(hex) : String(color(t, name))
+    accentProc.command = name === "" ? [accentScript, slug, "reset"] : [accentScript, slug, value, name]
     accentProc.running = true
   }
   Process { id: accentProc; onExited: { themes.accentBusy = ""; themes.reload() } }

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import "../../"
 
 // ThemePage — one theme's tab in the Themes window (palette button on the
@@ -76,7 +77,8 @@ Column {
     // the theme). Theme's own puts the original back.
     readonly property var picked: Themes.accents[page.slug] || null
     readonly property string pick: picked ? (picked.name || "") : ""
-    function setPick(name) { Themes.setAccent(page.slug, name) }
+    function setPick(name, hex) { pickerOpen = false; Themes.setAccent(page.slug, name, hex) }
+    property bool pickerOpen: false
     Item {
       width: parent.width; height: 20
       Head { anchors.verticalCenter: parent.verticalCenter; text: Themes.accentBusy === page.slug ? "Colors · repainting…" : "Colors · click one for your accent everywhere" }
@@ -98,13 +100,13 @@ Column {
     }
     Row {
       anchors.horizontalCenter: parent.horizontalCenter
-      spacing: Math.max(0, (parent.width - 9 * 50) / 8)
+      spacing: Math.max(0, (parent.width - 10 * 46) / 9)
       Repeater {
         model: ["background", "foreground", "accent", "red", "yellow", "green", "cyan", "blue", "magenta"]
         Column {
           required property var modelData
           spacing: 4
-          width: 50
+          width: 46
           Rectangle {
             id: dot
             readonly property bool can: modelData !== "background" && modelData !== "accent" && Themes.accentBusy === ""   // the background can't be the accent
@@ -124,6 +126,169 @@ Column {
             color: Theme.textDim
             font.family: Theme.fontText; font.pixelSize: 9
           }
+        }
+      }
+      // Any color at all: a rainbow wheel that opens the picker below.
+      Column {
+        spacing: 4
+        width: 46
+        Item {
+          id: wheel
+          readonly property bool picked: colorsCard.pick === "custom"
+          anchors.horizontalCenter: parent.horizontalCenter
+          width: 30; height: 30
+          scale: wheelTap.containsMouse ? 1.1 : 1
+          Behavior on scale { NumberAnimation { duration: Motion.ms(Motion.hover) } }
+          Shape {
+            anchors.fill: parent
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+              strokeWidth: 0; strokeColor: "transparent"
+              fillGradient: ConicalGradient {
+                centerX: 15; centerY: 15; angle: 90
+                GradientStop { position: 0.000; color: "#ff0000" }
+                GradientStop { position: 0.167; color: "#ff00ff" }
+                GradientStop { position: 0.333; color: "#0000ff" }
+                GradientStop { position: 0.500; color: "#00ffff" }
+                GradientStop { position: 0.667; color: "#00ff00" }
+                GradientStop { position: 0.833; color: "#ffff00" }
+                GradientStop { position: 1.000; color: "#ff0000" }
+              }
+              PathAngleArc { centerX: 15; centerY: 15; radiusX: 15; radiusY: 15; startAngle: 0; sweepAngle: 360 }
+            }
+          }
+          // the custom color you picked, in the middle
+          Rectangle {
+            visible: wheel.picked
+            anchors.centerIn: parent
+            width: 12; height: 12; radius: 6
+            color: Theme.accent
+            border.width: 1; border.color: Theme.surface
+          }
+          Rectangle {
+            anchors.fill: parent; radius: 15; color: "transparent"
+            border.width: wheel.picked || colorsCard.pickerOpen ? 3 : wheelTap.containsMouse ? 2 : 0
+            border.color: Theme.text
+          }
+          MouseArea {
+            id: wheelTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+            enabled: Themes.accentBusy === ""
+            onClicked: { colorsCard.pickerOpen = !colorsCard.pickerOpen; if (colorsCard.pickerOpen) picker.start(Theme.accent) }
+          }
+        }
+        Text {
+          anchors.horizontalCenter: parent.horizontalCenter
+          text: "custom"
+          color: Theme.textDim
+          font.family: Theme.fontText; font.pixelSize: 9
+        }
+      }
+    }
+
+    // ── The full-spectrum picker ──
+    // Left: saturation (across) and brightness (down) for the hue picked on
+    // the strip next to it. Right: how it looks, its hex code (type your own),
+    // and Use it.
+    Item {
+      id: picker
+      visible: colorsCard.pickerOpen
+      width: parent.width
+      height: visible ? 150 : 0
+      property real h: 0
+      property real sat: 1
+      property real val: 1
+      readonly property color chosen: Qt.hsva(h, sat, val, 1)
+      function hex2(n) { const s = Math.round(n * 255).toString(16); return s.length < 2 ? "0" + s : s }
+      readonly property string hex: "#" + hex2(chosen.r) + hex2(chosen.g) + hex2(chosen.b)
+      function start(c) { h = Math.max(0, c.hsvHue); sat = c.hsvSaturation; val = c.hsvValue }
+
+      Rectangle {
+        id: sv
+        x: 0; y: 0
+        width: 220; height: 150; radius: 10
+        color: Qt.hsva(picker.h, 1, 1, 1)
+        clip: true
+        Rectangle {
+          anchors.fill: parent; radius: 10
+          gradient: Gradient { orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: "white" }
+            GradientStop { position: 1; color: "transparent" } }
+        }
+        Rectangle {
+          anchors.fill: parent; radius: 10
+          gradient: Gradient {
+            GradientStop { position: 0; color: "transparent" }
+            GradientStop { position: 1; color: "black" } }
+        }
+        Rectangle {
+          x: picker.sat * sv.width - 7; y: (1 - picker.val) * sv.height - 7
+          width: 14; height: 14; radius: 7
+          color: picker.chosen; border.width: 2; border.color: "white"
+        }
+        MouseArea {
+          anchors.fill: parent; cursorShape: Qt.CrossCursor
+          function set(m) { picker.sat = Math.max(0, Math.min(1, m.x / width)); picker.val = Math.max(0, Math.min(1, 1 - m.y / height)) }
+          onPressed: (m) => set(m)
+          onPositionChanged: (m) => { if (pressed) set(m) }
+        }
+      }
+      Rectangle {
+        id: hueBar
+        anchors.left: sv.right; anchors.leftMargin: 10
+        width: 18; height: 150; radius: 9
+        gradient: Gradient {
+          GradientStop { position: 0.000; color: "#ff0000" }
+          GradientStop { position: 0.167; color: "#ffff00" }
+          GradientStop { position: 0.333; color: "#00ff00" }
+          GradientStop { position: 0.500; color: "#00ffff" }
+          GradientStop { position: 0.667; color: "#0000ff" }
+          GradientStop { position: 0.833; color: "#ff00ff" }
+          GradientStop { position: 1.000; color: "#ff0000" }
+        }
+        Rectangle {
+          x: -3; y: picker.h * hueBar.height - 3
+          width: hueBar.width + 6; height: 6; radius: 3
+          color: "transparent"; border.width: 2; border.color: "white"
+        }
+        MouseArea {
+          anchors.fill: parent; anchors.margins: -4; cursorShape: Qt.PointingHandCursor
+          function set(m) { picker.h = Math.max(0, Math.min(0.999, (m.y - 4) / hueBar.height)) }
+          onPressed: (m) => set(m)
+          onPositionChanged: (m) => { if (pressed) set(m) }
+        }
+      }
+      Column {
+        anchors.left: hueBar.right; anchors.leftMargin: 14
+        anchors.right: parent.right
+        spacing: 10
+        Rectangle {
+          width: parent.width; height: 52; radius: 12
+          color: picker.chosen
+          border.width: 1; border.color: Theme.edge
+        }
+        Rectangle {
+          width: parent.width; height: 30; radius: 15
+          color: Theme.surface
+          TextInput {
+            id: hexIn
+            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12
+            verticalAlignment: TextInput.AlignVCenter
+            color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12
+            text: picker.hex
+            selectByMouse: true
+            onAccepted: { const t = text.trim(); const c = Qt.color(/^#?[0-9a-fA-F]{6}$/.test(t) ? (t[0] === "#" ? t : "#" + t) : picker.hex); picker.start(c); text = Qt.binding(() => picker.hex) }
+          }
+        }
+        Rectangle {
+          width: parent.width; height: 32; radius: 16
+          color: useTap2.containsMouse ? Qt.lighter(picker.chosen, 1.1) : picker.chosen
+          Text {
+            anchors.centerIn: parent
+            text: "Use it"
+            color: picker.val > 0.6 && picker.sat < 0.6 ? "black" : (picker.val > 0.75 ? "black" : "white")
+            font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold
+          }
+          MouseArea { id: useTap2; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: colorsCard.setPick("custom", picker.hex) }
         }
       }
     }
