@@ -66,6 +66,25 @@ Item {
     }
     return best
   }
+  // Every window on the workspace showing there, left to right (the peek shows them all).
+  function windowsOn(name) {
+    void(rev)
+    const m = monitor(name)
+    if (!m) return []
+    const ws = shownWorkspace(m, true)
+    return Hyprland.toplevels.values.filter(t => {
+      const o = t.lastIpcObject || {}
+      const wid = o.workspace ? o.workspace.id : (t.workspace ? t.workspace.id : null)
+      return wid === ws && !o.hidden
+    }).sort((a, b) => {
+      const pa = (a.lastIpcObject || {}).at || [0, 0], pb = (b.lastIpcObject || {}).at || [0, 0]
+      return pa[0] !== pb[0] ? pa[0] - pb[0] : pa[1] - pb[1]
+    })
+  }
+  // The peek keeps itself open while the mouse is on it (Hover.qml sets this).
+  property bool peekHeld: false
+  onPeekHeldChanged: if (peekHeld) unhover.stop(); else if (!pillHover) unhover.restart()
+  property bool pillHover: false
   function addressOf(t) {
     const o = t.lastIpcObject || {}
     return o.address || ("0x" + String(t.address).replace(/^0x/, ""))
@@ -96,7 +115,8 @@ Item {
   }
 
   // Moving between pills shouldn't close the peek for a blink.
-  Timer { id: unhover; interval: 300; onTriggered: root.hovered = "" }
+  Timer { id: unhover; interval: 350; onTriggered: if (!root.peekHeld && !root.pillHover) root.hovered = "" }
+  property string pending: ""   // the pill the mouse went onto last
 
   Row {
     id: row
@@ -180,15 +200,22 @@ Item {
         }
 
         MouseArea {
+          // A big target around the small pill: half the gap on each side, 10px above and below.
           anchors.fill: parent
-          anchors.margins: -4
+          anchors.leftMargin: -4; anchors.rightMargin: -4
+          anchors.topMargin: -10; anchors.bottomMargin: -10
           hoverEnabled: true
           preventStealing: true
           cursorShape: root.dragFrom !== "" ? Qt.ClosedHandCursor : Qt.PointingHandCursor
           property point start
           property bool dragged: false
-          onEntered: { unhover.stop(); root.hovered = pill.monitorName }
-          onExited: unhover.restart()
+          onEntered: {
+            unhover.stop(); root.pillHover = true; root.pending = pill.monitorName
+            root.hovered = pill.monitorName
+          }
+          // Only the pill the mouse was last on counts as left (enter/leave between
+          // two pills can arrive in either order).
+          onExited: if (root.pending === pill.monitorName) { root.pillHover = false; unhover.restart() }
           onPressed: (m) => { start = Qt.point(m.x, m.y); dragged = false }
           onPositionChanged: (m) => {
             if (!pressed) return

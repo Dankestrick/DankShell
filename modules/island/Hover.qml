@@ -203,11 +203,11 @@ Item {
     }
   }
 
-  // ── Peek: the window on the hovered pill's monitor, live ──
+  // ── Peek: every window on the hovered pill's monitor, live ──
   Item {
     id: peek
     readonly property string mon: hoverCard.showing ? pills.peekMonitor : ""
-    readonly property var win: mon ? pills.windowOn(mon) : null
+    readonly property var wins: mon ? pills.windowsOn(mon) : []
     readonly property bool open: mon !== "" && !menuBox.open
     x: 16
     y: Sizes.hoverHeight + hoverCard.baseExtra + 2
@@ -217,6 +217,15 @@ Item {
     visible: opacity > 0
     Behavior on opacity { NumberAnimation { duration: Motion.ms(Motion.fade) } }
 
+    // The mouse on the peek keeps it open (so you can look without the pill).
+    HoverHandler { id: peekHover; onHoveredChanged: pills.peekHeld = hovered && peek.open }
+
+    function aspectOf(t) { const sz = (t.lastIpcObject || {}).size; return sz && sz[1] > 0 ? sz[0] / sz[1] : 16 / 9 }
+    readonly property real totalAspect: wins.reduce((n, t) => n + aspectOf(t), 0)
+    readonly property int gap: 8
+    // One height for every window, as big as fits the frame.
+    readonly property real tileH: wins.length ? Math.min(frame.height - 16, (frame.width - 16 - gap * (wins.length - 1)) / Math.max(0.1, totalAspect)) : 0
+
     Rectangle {
       id: frame
       width: parent.width
@@ -224,19 +233,31 @@ Item {
       radius: 12
       color: Theme.surfaceRaised
       clip: true
-      ScreencopyView {
-        id: shot
+      Row {
         anchors.centerIn: parent
-        captureSource: peek.open && peek.win && peek.win.wayland ? peek.win.wayland : null
-        live: true
-        // keep the window's shape inside the frame
-        readonly property real aspect: sourceSize.height > 0 ? sourceSize.width / sourceSize.height : 16 / 9
-        width: Math.min(frame.width, frame.height * aspect)
-        height: width / aspect
+        spacing: peek.gap
+        Repeater {
+          model: peek.open ? peek.wins : []
+          Rectangle {
+            required property var modelData
+            width: Math.round(peek.tileH * peek.aspectOf(modelData)); height: Math.round(peek.tileH)
+            radius: 6
+            color: Theme.surface
+            clip: true
+            ScreencopyView {
+              anchors.fill: parent
+              captureSource: modelData.wayland || null
+              live: true
+              // Drawn through a layer: a see-through window (Ghostty) would
+              // otherwise punch a hole in the card and show the desktop.
+              layer.enabled: true
+            }
+          }
+        }
       }
       Text {
         anchors.centerIn: parent
-        visible: !peek.win
+        visible: peek.wins.length === 0
         text: "Nothing open here"
         color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 11
       }
@@ -247,9 +268,10 @@ Item {
       width: parent.width
       horizontalAlignment: Text.AlignHCenter
       elide: Text.ElideRight
-      readonly property var ipc: peek.win ? (peek.win.lastIpcObject || {}) : {}
-      text: !peek.win ? peek.mon
-          : (ipc.class ? ipc.class + "  ·  " : "") + (peek.win.title || "") + "   (" + peek.mon + ")"
+      function nameOf(t) { const o = t.lastIpcObject || {}; return String(o.class || t.title || "").replace(/^.*\./, "") }
+      text: peek.wins.length === 0 ? peek.mon
+          : peek.wins.length === 1 ? (peek.wins[0].title || nameOf(peek.wins[0])) + "   (" + peek.mon + ")"
+          : peek.wins.map(nameOf).join("  ·  ") + "   (" + peek.mon + ")"
       color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11
     }
   }
