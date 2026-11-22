@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Hyprland
 import Quickshell.Wayland
 import "../../"
@@ -25,7 +26,14 @@ PanelWindow {
 
   // No anchors = Hyprland puts it in the middle of the screen.
   // A window with only one page has no sidebar, so it's narrower.
-  readonly property bool solo: pages.length === 1
+  // (Games keeps its sidebar: Steam now, Epic when it's installed.)
+  readonly property bool solo: pages.length === 1 && mode !== "game"
+  property var epic: ({ launcher: null, games: [] })
+  Process {
+    id: epicCheck
+    command: ["python3", "-I", Qt.resolvedUrl("../../scripts/epic.py").toString().replace("file://", "")]
+    stdout: StdioCollector { onStreamFinished: { try { const d = JSON.parse(text); if (JSON.stringify(d) !== JSON.stringify(win.epic)) win.epic = d } catch (e) { } } }
+  }
   implicitWidth: solo ? Sizes.centerWidth - side.width : Sizes.centerWidth
   implicitHeight: Sizes.centerHeight
   color: "transparent"
@@ -45,7 +53,7 @@ PanelWindow {
   // Three kinds of window, each with only its own things in the sidebar:
   //   plugins:  All plugins, a grid tab per kind (Running, Background, Omarchy…), Updates, Camera
   //   settings: the Settings sections
-  //   game:     Games (one page, no sidebar)
+  //   game:     Steam (+ Epic once an Epic launcher is installed)
   //   audio:    Volume, EQ, Defaults
   //   notifications: Unread, Read, Archive
   //   themes:   a tab per theme (colors + wallpapers)
@@ -99,9 +107,14 @@ PanelWindow {
                sub: "From before today. Omarchy keeps them for 24 hours.", props: { stage: "archive" },
                url: Qt.resolvedUrl("../pages/Notifications.qml"), words: "notification archive yesterday old" })
     // Games window (the game button in the dashboard's top row, the › on Game Mode, Super+Alt+Y).
-    out.push({ key: "game", mode: "game", group: "Games", name: "Games", icon: "joystick",
+    out.push({ key: "game", mode: "game", group: "Games", name: "Steam", icon: "joystick",
                sub: "Game Mode, your controller, and your Steam games.",
                url: Qt.resolvedUrl("../pages/Game.qml"), words: "game mode steam play controller dualsense" })
+    // Epic tab: only once an Epic launcher is installed (scripts/epic.py).
+    if (win.epic.launcher)
+      out.push({ key: "epic", mode: "game", group: "Games", name: "Epic", icon: "storefront",
+                 sub: "Your Epic Games launcher and the Epic games you have installed.", props: { info: win.epic },
+                 url: Qt.resolvedUrl("../pages/Epic.qml"), words: "epic games fortnite heroic legendary store" })
     // Themes window (the palette button): a tab per installed theme, its accent as the dot.
     for (const t of Themes.list)
       out.push({ key: "theme:" + t.slug, mode: "themes", group: "Themes", name: t.name, icon: "palette",
@@ -183,7 +196,7 @@ PanelWindow {
     if (shown.length) Popouts.center = shown[(i + d + shown.length) % shown.length].key
   }
 
-  onWantedChanged: if (wanted) { search.text = ""; takeKeys(); Installed.reload(); PluginManager.checkUpdates(false); Themes.reload() }
+  onWantedChanged: if (wanted) { search.text = ""; takeKeys(); Installed.reload(); PluginManager.checkUpdates(false); Themes.reload(); epicCheck.running = true }
   onSoloChanged: if (wanted) takeKeys()
   // The search box has the keys; a solo window has no search box, so the card does.
   function takeKeys() { if (solo) card.forceActiveFocus(); else search.forceActiveFocus() }
