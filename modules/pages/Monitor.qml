@@ -13,16 +13,31 @@ Column {
 
   property var cpu: ({})
   property var gpu: ({})
+  property var gpuUse: ({})   // pid → % of the whole GPU
+  // Busiest programs as a share of the WHOLE CPU (top counts 100% per thread,
+  // so on 32 threads it would say 120% for under 4% of the chip).
+  readonly property var cpuTop: (cpu.top || []).map(p => ({ name: p.name, pct: p.cpu / Math.max(1, cpu.threads || 1) }))
+  readonly property var gpuTop: (gpu.processes || []).map(p => ({ name: p.name, pct: gpuUse[String(p.pid)] || 0, memMiB: p.memMiB }))
+    .sort((a, b) => (b.pct - a.pct) || (b.memMiB - a.memMiB))
+  function pctText(v) { return v > 0 && v < 10 ? v.toFixed(1) + "%" : Math.round(v) + "%" }
 
   readonly property string dir: Qt.resolvedUrl("../../scripts/monitor/").toString().replace("file://", "")
   Process {
     id: poll
-    command: ["bash", "-c", "python3 -I '" + page.dir + "cpustatus'; echo '@@'; python3 -I '" + page.dir + "gpustatus' 0"]
+    command: ["bash", "-c", "python3 -I '" + page.dir + "cpustatus'; echo '@@'; python3 -I '" + page.dir + "gpustatus' 0; echo '@@'; nvidia-smi pmon -c 1 -s u 2>/dev/null"]
     stdout: StdioCollector {
       onStreamFinished: {
         const parts = text.split("@@")
         try { page.cpu = JSON.parse(parts[0]) || {} } catch (e) { }
         try { page.gpu = JSON.parse(parts[1]) || {} } catch (e) { }
+        // nvidia-smi pmon: how much of the whole GPU each program is using (sm %).
+        const sm = {}
+        for (const line of (parts[2] || "").split("\n")) {
+          const f = line.trim().split(/\s+/)
+          if (f.length < 5 || f[0].charAt(0) === "#") continue
+          const v = parseInt(f[3]); if (!isNaN(v)) sm[f[1]] = (sm[f[1]] || 0) + v
+        }
+        page.gpuUse = sm
       }
     }
   }
@@ -136,7 +151,7 @@ Column {
   Card {
     width: parent.width
     visible: (page.cpu.top || []).length > 0
-    Text { text: "Busiest right now"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase }
+    Text { text: "Busiest right now · share of the whole chip"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; font.capitalization: Font.AllUppercase }
     Row {
       width: parent.width
       spacing: 16
@@ -145,26 +160,26 @@ Column {
         spacing: 3
         Text { text: "CPU"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold }
         Repeater {
-          model: (page.cpu.top || []).slice(0, 5)
+          model: page.cpuTop.slice(0, 5)
           Item {
             required property var modelData
             width: parent.width; height: 16
             Text { width: parent.width - 50; text: modelData.name; elide: Text.ElideRight; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11 }
-            Text { anchors.right: parent.right; text: Math.round(modelData.cpu) + "%"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 11 }
+            Text { anchors.right: parent.right; text: page.pctText(modelData.pct); color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 11 }
           }
         }
       }
       Column {
         width: (parent.width - 16) / 2
         spacing: 3
-        Text { text: "VRAM"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold }
+        Text { text: "GPU"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold }
         Repeater {
-          model: (page.gpu.processes || []).slice(0, 5)
+          model: page.gpuTop.slice(0, 5)
           Item {
             required property var modelData
             width: parent.width; height: 16
-            Text { width: parent.width - 60; text: modelData.name; elide: Text.ElideRight; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11 }
-            Text { anchors.right: parent.right; text: (modelData.memMiB >= 1024 ? (modelData.memMiB / 1024).toFixed(1) + " GiB" : modelData.memMiB + " MiB"); color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 11 }
+            Text { width: parent.width - 110; text: modelData.name; elide: Text.ElideRight; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11 }
+            Text { anchors.right: parent.right; text: page.pctText(modelData.pct) + "  ·  " + (modelData.memMiB >= 1024 ? (modelData.memMiB / 1024).toFixed(1) + " GiB" : modelData.memMiB + " MiB"); color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 11 }
           }
         }
       }
