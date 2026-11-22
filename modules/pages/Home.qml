@@ -7,7 +7,8 @@ Column {
   id: home
   spacing: 10
 
-  function open(key) { Popouts.openCenter(key, home.QsWindow.window ? home.QsWindow.window.screen.name : "") }
+  // true = opened from the dashboard, so a right-click in the window comes back here
+  function open(key) { Popouts.openCenter(key, home.QsWindow.window ? home.QsWindow.window.screen.name : "", true) }
 
   // 2 × 2 toggles
   Grid {
