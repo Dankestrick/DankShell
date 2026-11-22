@@ -48,7 +48,8 @@ PanelWindow {
   //   device:   Games, Camera
   //   audio:    Volume, EQ, Defaults
   //   notifications: Unread, Read, Archive
-  //   system, bluetooth: one page each, no sidebar (solo)
+  //   power:    System info, Lock, Screensaver, Restart, Power off
+  //   bluetooth: one page, no sidebar, no sidebar (solo)
   readonly property var gridTabs: [
     { key: "grid-running", group: "Running", icon: "play_circle", words: "running on active",
       sub: "Plugins you have on. Click one to use it." },
@@ -100,9 +101,22 @@ PanelWindow {
                url: Qt.resolvedUrl("../pages/Camera.qml"), words: "camera webcam anker video brightness exposure focus zoom look" })
     // One-page windows (no sidebar): System from the power button, Bluetooth
     // from a right-click on Home's Bluetooth tile.
-    out.push({ key: "monitor", mode: "system", group: "System", name: "System", icon: "monitoring",
+    // Power window (the power button at the end of the dashboard's top row).
+    out.push({ key: "monitor", mode: "power", group: "Power", name: "System info", icon: "monitoring",
                sub: "CPU, memory and GPU, live.",
-               url: Qt.resolvedUrl("../pages/Monitor.qml"), words: "cpu gpu ram memory vram temp temperature monitor load" })
+               url: Qt.resolvedUrl("../pages/Monitor.qml"), words: "cpu gpu ram memory vram temp temperature monitor load system info" })
+    out.push({ key: "lock", mode: "power", group: "Power", name: "Lock", icon: "lock",
+               sub: "Lock the computer and turn the screens off.", props: { action: "lock" },
+               url: Qt.resolvedUrl("../pages/Power.qml"), words: "lock screen password" })
+    out.push({ key: "screensaver", mode: "power", group: "Power", name: "Screensaver", icon: "auto_awesome",
+               sub: "Start the screensaver now. A key brings you back.", props: { action: "screensaver" },
+               url: Qt.resolvedUrl("../pages/Power.qml"), words: "screensaver idle" })
+    out.push({ key: "reboot", mode: "power", group: "Power", name: "Restart", icon: "restart_alt",
+               sub: "Close everything and restart the computer.", props: { action: "reboot" },
+               url: Qt.resolvedUrl("../pages/Power.qml"), words: "restart reboot reset" })
+    out.push({ key: "shutdown", mode: "power", group: "Power", name: "Power off", icon: "power_settings_new",
+               sub: "Close everything and turn the computer off.", props: { action: "shutdown" },
+               url: Qt.resolvedUrl("../pages/Power.qml"), words: "power off shutdown shut down turn off" })
     out.push({ key: "bluetooth", mode: "bluetooth", group: "Bluetooth", name: "Bluetooth", icon: "bluetooth",
                sub: "Find new devices and pair them. Click one to connect.",
                url: Qt.resolvedUrl("../pages/Bluetooth.qml"), words: "bluetooth pair devices controller headphones scan" })
