@@ -67,36 +67,47 @@ Column {
     }
   }
 
-  // ── Everything else lives in Omarchy ──────────
-  // DankShell doesn't redo it all: this opens Omarchy's own Appearance menu
-  // (theme, background, font, bar, window corners/opacity, branding).
+  // ── Make your own: Aether ──────────────────
+  // DankShell doesn't redo it all. Aether (installed) is the full theme maker:
+  // pick a wallpaper, tweak every color (window borders, highlights, sliders,
+  // terminal colors...) and save it as an Omarchy theme. Omarchy's own
+  // Appearance menu has fonts, bar, window corners/opacity and branding.
+  component LinkBtn: Rectangle {
+    id: lb
+    property string label: ""
+    property string icon: ""
+    property bool primary: false
+    signal clicked()
+    width: lbRow.implicitWidth + 20; height: 28; radius: 14
+    color: primary ? (lbTap.containsMouse ? Qt.lighter(Theme.accent, 1.1) : Theme.accent)
+                   : (lbTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface)
+    Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
+    Row {
+      id: lbRow; anchors.centerIn: parent; spacing: 5
+      Icon { width: 15; height: 15; name: lb.icon; font.pixelSize: 15; color: lb.primary ? Theme.surface : Theme.text; anchors.verticalCenter: parent.verticalCenter }
+      Text { text: lb.label; color: lb.primary ? Theme.surface : Theme.text; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+    }
+    MouseArea { id: lbTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: lb.clicked() }
+  }
+  function launch(cmd) { page.closeRequested(); Quickshell.execDetached(cmd) }
   Card {
     width: parent.width
     Item {
       width: parent.width; height: 36
-      Icon { id: omIcon; anchors.verticalCenter: parent.verticalCenter; name: "tune"; color: Theme.textDim; font.pixelSize: 18 }
+      Icon { id: omIcon; anchors.verticalCenter: parent.verticalCenter; name: "format_paint"; color: Theme.textDim; font.pixelSize: 18 }
       Column {
         anchors.left: omIcon.right; anchors.leftMargin: 10
-        anchors.right: omBtn.left; anchors.rightMargin: 10
+        anchors.right: btns.left; anchors.rightMargin: 10
         anchors.verticalCenter: parent.verticalCenter
-        Text { width: parent.width; elide: Text.ElideRight; text: "Omarchy Appearance"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
-        Text { width: parent.width; elide: Text.ElideRight; text: "Fonts, bar, window corners and opacity, branding"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10 }
+        Text { width: parent.width; elide: Text.ElideRight; text: "Make your own theme"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 12; font.weight: Font.DemiBold }
+        Text { width: parent.width; elide: Text.ElideRight; text: "Aether: colors, borders, sliders"; color: Theme.textDim; font.family: Theme.fontText; font.pixelSize: 10 }
       }
-      Rectangle {
-        id: omBtn
+      Row {
+        id: btns
         anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-        width: omRow.implicitWidth + 20; height: 28; radius: 14
-        color: omTap.containsMouse ? Qt.lighter(Theme.surfaceRaised, 1.6) : Theme.surface
-        Behavior on color { ColorAnimation { duration: Motion.ms(Motion.fade) } }
-        Row {
-          id: omRow; anchors.centerIn: parent; spacing: 5
-          Icon { width: 15; height: 15; name: "open_in_new"; font.pixelSize: 15; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
-          Text { text: "Open"; color: Theme.text; font.family: Theme.fontText; font.pixelSize: 11; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
-        }
-        MouseArea {
-          id: omTap; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-          onClicked: { page.closeRequested(); Quickshell.execDetached(["omarchy", "menu", "summon", "appearance"]) }
-        }
+        spacing: 6
+        LinkBtn { icon: "tune"; label: "Omarchy menu"; onClicked: page.launch(["omarchy", "menu", "summon", "appearance"]) }
+        LinkBtn { icon: "open_in_new"; label: "Open Aether"; primary: true; onClicked: page.launch(["uwsm-app", "--", "aether"]) }
       }
     }
   }
