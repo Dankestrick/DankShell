@@ -67,9 +67,28 @@ Column {
 
   // ── Colors ────────────────────────────────────
   Card {
+    id: colorsCard
     width: parent.width
     visible: !!page.t
-    Head { text: "Colors" }
+    // Click a color to make it DankShell's highlight for this theme (saved per theme).
+    readonly property string pick: (Settings.v.themeAccent || {})[page.slug] || ""
+    function setPick(name) {
+      const m = Object.assign({}, Settings.v.themeAccent || {})
+      if (name === "" || name === "accent") delete m[page.slug]; else m[page.slug] = name
+      Settings.set("themeAccent", m)
+    }
+    Item {
+      width: parent.width; height: 20
+      Head { anchors.verticalCenter: parent.verticalCenter; text: "Colors · click one to light up the dashboard with it" }
+      Row {
+        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+        visible: colorsCard.pick !== ""
+        spacing: 3
+        Icon { name: "undo"; color: Theme.accent; font.pixelSize: 14; anchors.verticalCenter: parent.verticalCenter }
+        Text { text: "Theme's own"; color: Theme.accent; font.family: Theme.fontText; font.pixelSize: 10; font.weight: Font.DemiBold; anchors.verticalCenter: parent.verticalCenter }
+        MouseArea { anchors.fill: parent; anchors.margins: -6; cursorShape: Qt.PointingHandCursor; onClicked: colorsCard.setPick("") }
+      }
+    }
     Row {
       anchors.horizontalCenter: parent.horizontalCenter
       spacing: Math.max(0, (parent.width - 9 * 50) / 8)
@@ -80,10 +99,17 @@ Column {
           spacing: 4
           width: 50
           Rectangle {
+            id: dot
+            readonly property bool can: modelData !== "background"   // the background can't be the highlight
+            readonly property bool picked: (colorsCard.pick === "" ? "accent" : colorsCard.pick) === modelData
             anchors.horizontalCenter: parent.horizontalCenter
             width: 30; height: 30; radius: 15
             color: Themes.color(page.t, modelData)
-            border.width: 1; border.color: Theme.edge
+            border.width: picked ? 3 : dotTap.containsMouse && can ? 2 : 1
+            border.color: picked || (dotTap.containsMouse && can) ? Theme.text : Theme.edge
+            scale: dotTap.containsMouse && can ? 1.1 : 1
+            Behavior on scale { NumberAnimation { duration: Motion.ms(Motion.hover) } }
+            MouseArea { id: dotTap; anchors.fill: parent; hoverEnabled: true; enabled: dot.can; cursorShape: Qt.PointingHandCursor; onClicked: colorsCard.setPick(modelData) }
           }
           Text {
             anchors.horizontalCenter: parent.horizontalCenter

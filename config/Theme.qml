@@ -27,7 +27,13 @@ QtObject {
   property color textDim: Qt.rgba(fg.r, fg.g, fg.b, 0.6)
 
   // ── 3. Accent ─────────────────────────────────
-  property color accent: { void(rev); return Color.accent || "#7aa2f7" }
+  // Your pick from the Themes window (one of the theme's own colors), else the theme's accent.
+  readonly property string accentPick: (Settings.v.themeAccent || {})[Themes.current] || ""
+  property color accent: {
+    void(rev)
+    const t = accentPick !== "" ? Themes.list.find(x => x.slug === Themes.current) : null
+    return t ? Themes.color(t, accentPick) : (Color.accent || "#7aa2f7")
+  }
   property color urgent: { void(rev); return Color.urgent || "#a55555" }   // warnings (low battery)
 
   // ── Fonts ─────────────────────────────────────
