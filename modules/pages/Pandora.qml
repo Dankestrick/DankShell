@@ -231,12 +231,24 @@ Column {
         spacing: 6
         model: Lyrics.lines
         currentIndex: Lyrics.current
-        highlightRangeMode: ListView.ApplyRange
-        preferredHighlightBegin: (height - (currentItem ? currentItem.height : 0)) / 2
-        preferredHighlightEnd: (height + (currentItem ? currentItem.height : 0)) / 2
-        highlightMoveDuration: 450
-        highlightMoveVelocity: -1
-        onModelChanged: Qt.callLater(() => positionViewAtIndex(Math.max(0, currentIndex), ListView.Center))
+        // The line being sung always sits in the middle: every new line
+        // smooth-scrolls to the center. Blank space above and below lets the
+        // first and last lines reach the middle too. Scroll by hand any time;
+        // the next line brings it back.
+        cacheBuffer: 4000
+        header: Item { width: 1; height: lyList.height / 2 }
+        footer: Item { width: 1; height: lyList.height / 2 }
+        function follow(animate) {
+          const it = itemAtIndex(Math.max(0, Lyrics.current))
+          if (!it) { positionViewAtIndex(Math.max(0, Lyrics.current), ListView.Center); return }
+          const to = it.y + it.height / 2 - height / 2
+          if (animate) { scrollAnim.to = to; scrollAnim.restart() } else { scrollAnim.stop(); contentY = to }
+        }
+        NumberAnimation { id: scrollAnim; target: lyList; property: "contentY"; duration: Motion.ms(450); easing.type: Easing.InOutQuad }
+        Connections { target: Lyrics; function onCurrentChanged() { Qt.callLater(lyList.follow, true) } }
+        onModelChanged: Qt.callLater(lyList.follow, false)
+        onHeightChanged: Qt.callLater(lyList.follow, false)
+        onVisibleChanged: if (visible) Qt.callLater(lyList.follow, false)
         delegate: Text {
           required property var modelData
           required property int index
