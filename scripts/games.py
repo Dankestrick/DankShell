@@ -6,7 +6,8 @@ and the library art cache. Runtimes, Proton and redistributables are skipped.
 "mods" lists r2modman profiles for the game (~/.config/r2modmanPlus-local/<Game>/
 profiles/<Profile>), each with the Steam launch arguments r2modman's own
 "Start modded" sends (BepInEx doorstop + --r2profile for linux_wrapper.sh).
-"launcher" (GTA: mods) is a DankShell script that does the modded launch."""
+"launcher" is your own launch script for a game, set in ~/.config/dankshell/launchers.json:
+  {"<appid>": {"name": "Button label", "script": "~/path/to/script"}}"""
 import json, re
 from pathlib import Path
 
@@ -78,16 +79,27 @@ def r2_profiles(game_name):
     return out
 
 
-# Games with their own modded launch script in DankShell's scripts/.
-LAUNCHERS = {
-    "3240220": ("mods", Path(__file__).resolve().parent / "gta-modded", Path.home() / ".local/bin/modloader"),
-}
+# Your own launch scripts, per Steam app id (~/.config/dankshell/launchers.json).
+def launchers():
+    try:
+        data = json.loads((Path.home() / ".config/dankshell/launchers.json").read_text())
+    except (OSError, ValueError):
+        return {}
+    out = {}
+    for appid, v in (data.items() if isinstance(data, dict) else []):
+        if not isinstance(v, dict) or not isinstance(v.get("script"), str):
+            continue
+        script = Path(v["script"]).expanduser()
+        if script.is_file():
+            out[str(appid)] = {"name": str(v.get("name") or "Modded")[:24], "script": str(script)}
+    return out
 
+
+LAUNCHERS = launchers()
 for g in games:
     g["mods"] = r2_profiles(g["name"])
-    hit = LAUNCHERS.get(g["appid"])
-    if hit and hit[1].is_file() and hit[2].is_file():
-        g["launcher"] = {"name": hit[0], "script": str(hit[1])}
+    if g["appid"] in LAUNCHERS:
+        g["launcher"] = LAUNCHERS[g["appid"]]
 
 games.sort(key=lambda g: -g["lastPlayed"])
 print(json.dumps(games))

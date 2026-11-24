@@ -22,8 +22,8 @@ Column {
   }
 
   // Games with an r2modman profile play modded (the same launch r2modman's
-  // "Start modded" does); GTA plays with mods (scripts/gta-modded: VPN on,
-  // GTA, then mods once Rockstar shows up); `vanilla` skips the mods.
+  // "Start modded" does); a game with your own launch script in
+  // ~/.config/dankshell/launchers.json runs that; `vanilla` skips the mods.
   function play(g, vanilla) {
     if (Settings.v.gameModeOnPlay && !Toggles.gameMode) Toggles.toggleGameMode()
     const mods = g.mods || []
