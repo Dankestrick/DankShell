@@ -44,7 +44,10 @@ Singleton {
   //   kind "widget": the real widget, with its own dropdown
   //   kind "launch": a plugin with its own window (OmaRT100, OmaCanon...): a click opens it
   readonly property var catalog: {
-    const out = Plugins.active().map(p => ({ key: p.key, name: p.name, icon: p.icon, sub: p.sub || "", kind: "page" }))
+    // A page shows only when its plugin is installed (Omarchy's own always are).
+    const out = Plugins.active()
+      .filter(p => p.id.startsWith("omarchy.") || Installed.all.some(i => i.id === p.id))
+      .map(p => ({ key: p.key, name: p.name, icon: p.icon, sub: p.sub || "", kind: "page" }))
     for (const e of entries) {
       if (!componentFor(e.id) || Plugins.byId(e.id)) continue   // has its own page
       out.push({ key: e.id, name: nameFor(e.id), icon: Widgets.ICONS[e.id] || "extension",

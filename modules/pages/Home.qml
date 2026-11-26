@@ -19,6 +19,7 @@ Column {
 
     ToggleTile {
       width: parent.tileWidth
+      visible: Toggles.vpnAvailable
       icon: "vpn_lock"
       title: "VPN"
       on: Toggles.vpn

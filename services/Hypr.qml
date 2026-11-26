@@ -5,7 +5,7 @@ import Quickshell.Io
 
 // Hypr — the window look settings (gaps, borders, rounding, blur...).
 // Borrowed from OmaSettings' way of doing it (MIT, copy in
-// ~/GitDank/CloneWars/omasettings): a change is applied live with
+// OmaSettings, MIT): a change is applied live with
 // `hyprctl eval`, and only the settings you changed are written to
 // ~/.config/hypr/dankshell.lua, which hyprland.lua loads last. Your own
 // config files are never rewritten. Undo drops the override and reloads.

@@ -2,7 +2,8 @@
 """List wallpapers for DankShell's wallpaper switcher. Prints JSON:
 {"current": "<path>", "theme": "<slug>", "items": [{"path", "name", "mine", "theme"}]}
 "mine" = it belongs to the theme in use (the "This theme" filter). The rest
-come from every other theme and from ~/GitDank/DankWallpapers.
+come from every other theme and from any extra folders listed in
+~/.config/dankshell/wallpapers.json: {"folders": ["~/Pictures/Wallpapers"]}.
 Folders are the same ones `omarchy theme bg next` cycles through."""
 import json, os
 from pathlib import Path
@@ -12,7 +13,17 @@ STATE = HOME / ".local/state/omarchy"
 USER_BGS = HOME / ".config/omarchy/backgrounds"
 USER_THEMES = HOME / ".config/omarchy/themes"
 SYS_THEMES = Path(os.environ.get("OMARCHY_PATH", "/usr/share/omarchy")) / "themes"
-EXTRA = [HOME / "GitDank/DankWallpapers"]
+
+
+def extra_folders():
+    try:
+        cfg = json.loads((HOME / ".config/dankshell/wallpapers.json").read_text())
+    except (OSError, ValueError):
+        return []
+    return [Path(x).expanduser() for x in cfg.get("folders") or [] if isinstance(x, str)]
+
+
+EXTRA = extra_folders()
 IMAGES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 
 

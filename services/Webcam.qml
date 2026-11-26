@@ -3,7 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Webcam — the Anker PowerConf C200 for the Camera page. Finds it by name
+// Webcam — the webcam for the Camera page ($DANKSHELL_CAMERA, or the first
+// real camera scripts/camera finds). Finds it by name
 // (never a fixed /dev/videoN), reads its controls, sets them with v4l2-ctl
 // (scripts/camera), keeps saved looks in ~/.config/dankshell/camera.json and
 // puts the active look back when the camera is plugged in.
@@ -12,7 +13,7 @@ Singleton {
   id: cam
 
   readonly property string helper: Qt.resolvedUrl("../scripts/camera").toString().replace("file://", "")
-  readonly property string name: "Anker PowerConf C200"
+  property string name: ""               // filled in by scripts/camera
   readonly property string lookFile: Quickshell.env("HOME") + "/.config/dankshell/camera.json"
 
   property string device: ""             // /dev/videoN, "" when unplugged
@@ -44,12 +45,13 @@ Singleton {
   function refresh() { if (!reader.running) reader.running = true }
   Process {
     id: reader
-    command: ["bash", "-c", "d=$('" + cam.helper + "' find); echo \"DEV=$d\"; [ -n \"$d\" ] && '" + cam.helper + "' ctrls \"$d\""]
+    command: ["bash", "-c", "echo \"NAME=$('" + cam.helper + "' name)\"; d=$('" + cam.helper + "' find); echo \"DEV=$d\"; [ -n \"$d\" ] && '" + cam.helper + "' ctrls \"$d\""]
     stdout: StdioCollector {
       onStreamFinished: {
         const out = {}
         let dev = ""
         for (const line of text.split("\n")) {
+          if (line.startsWith("NAME=")) { cam.name = line.slice(5).trim(); continue }
           if (line.startsWith("DEV=")) { dev = line.slice(4).trim(); continue }
           const m = line.match(/^\s*(\w+) 0x[0-9a-f]+ \((\w+)\)\s*:\s*(.*)$/)
           if (!m) continue

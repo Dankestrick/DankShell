@@ -5,7 +5,7 @@ import "../../"
 
 // Monitor — CPU, memory and GPU, live while the page is open (every 2 s).
 // Numbers come from DanSmith888's cpustatus/gpustatus (MIT, in
-// scripts/monitor/, originals in ~/GitDank/CloneWars/dansmith888.*).
+// scripts/monitor/, originals by DanSmith888, MIT).
 Column {
   id: page
   property bool showing: false

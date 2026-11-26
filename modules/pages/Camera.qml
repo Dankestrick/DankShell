@@ -3,7 +3,7 @@ import QtMultimedia as MM
 import Quickshell
 import "../../"
 
-// Camera — the Anker PowerConf C200 webcam. Live picture while this page is
+// Camera — your webcam (see services/Webcam.qml). Live picture while this page is
 // showing (it lets go of the camera when you leave, so calls can use it),
 // every control as a slider or switch, saved looks, and Open big (mpv).
 // Talks to the camera through services/Webcam.qml. The DSLR webcam plugin
@@ -21,7 +21,7 @@ Column {
   readonly property var dev: {
     const list = devs.videoInputs
     for (let i = 0; i < list.length; i++)
-      if (String(list[i].description).indexOf(Webcam.name) === 0) return list[i]
+      if (Webcam.name !== "" && String(list[i].description).indexOf(Webcam.name) === 0) return list[i]
     return null
   }
   // 1280×720 is plenty for the page; pick the fastest one.
@@ -125,7 +125,7 @@ Column {
     width: parent.width
     DeviceHeader {
       icon: "videocam"
-      title: Webcam.name
+      title: Webcam.name || "Camera"
       subtitle: !Webcam.present ? "Not plugged in"
               : (Webcam.bigOpen ? "Open in the big window" : Webcam.device)
                 + (Webcam.activeLook ? "  ·  look: " + Webcam.activeLook : "")

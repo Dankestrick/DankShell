@@ -5,8 +5,8 @@ Everything goes through Omarchy's own `omarchy plugin` commands.
   plugin-manage catalog          marketplace plugins you can install (JSON list),
                                  cached an hour in ~/.cache/dankshell/catalog.json
   plugin-manage check            which installed git plugins have an update (JSON map)
-  plugin-manage gitcheck         git installs (God's Eye View, ComfyUI, the clones in
-                                 ~/GitDank/CloneWars) and how far behind their repo they are
+  plugin-manage gitcheck         git installs (the checkouts listed in git-installs.json)
+                                 and how far behind their repo they are
   plugin-manage run ACTION ARG   install <github-url> | update <id> | remove <id>,
                                  meant to be started detached: it writes its progress
                                  to ~/.cache/dankshell/plugin-job.json, so the job
@@ -14,9 +14,12 @@ Everything goes through Omarchy's own `omarchy plugin` commands.
   plugin-manage batch ITEM...    update several at once, one after another; an item is
                                  plugin:<id> or git:<path from gitcheck>. Same job file.
 
-Git installs: every git checkout in ~/GitDank/CloneWars plus ~/ComfyUI. Your own
-repos (Dankestrick on GitHub/GitLab) and plugin clones (a manifest.json) are left out. ~/.config/dankshell/git-installs.json
-can add more: {"add": ["/path/to/checkout"], "skip": ["folder-name"]}.
+Git installs come from ~/.config/dankshell/git-installs.json:
+  {"roots": ["~/src"],            every git checkout inside these folders
+   "add": ["~/ComfyUI"],          single checkouts
+   "skip": ["folder-name"],       hide these
+   "ownOwners": ["yourname"]}     skip repos you own (github/gitlab user names)
+Plugin clones (a manifest.json) are always left out. No file = no git installs.
 """
 import json, os, re, subprocess, sys, time, urllib.request
 from concurrent.futures import ThreadPoolExecutor
@@ -125,10 +128,11 @@ def check():
         print(json.dumps(dict(pool.map(check_one, dirs))))
 
 
-GIT_ROOTS = [HOME / "GitDank/CloneWars"]
-GIT_SINGLES = [HOME / "ComfyUI"]
 GIT_CONFIG = HOME / ".config/dankshell/git-installs.json"
-OWN = re.compile(r"(github|gitlab)\.com[/:]dankestrick/", re.I)
+
+
+def paths(cfg, key):
+    return [Path(x).expanduser() for x in cfg.get(key) or [] if isinstance(x, str)]
 
 
 def git_dirs():
@@ -137,11 +141,13 @@ def git_dirs():
     except (OSError, ValueError):
         cfg = {}
     skip = set(cfg.get("skip") or [])
+    owners = [re.escape(o) for o in cfg.get("ownOwners") or [] if isinstance(o, str) and o]
+    own = re.compile(r"(github|gitlab)\.com[/:](" + "|".join(owners) + ")/", re.I) if owners else None
     found = []
-    for root in GIT_ROOTS:
+    for root in paths(cfg, "roots"):
         if root.is_dir():
             found += sorted(d for d in root.iterdir() if d.is_dir() and not d.is_symlink())
-    found += GIT_SINGLES + [Path(x).expanduser() for x in cfg.get("add") or [] if isinstance(x, str)]
+    found += paths(cfg, "add")
     out = []
     for d in found:
         if d.name in skip or not (d / ".git").is_dir() or d in out:
@@ -151,7 +157,7 @@ def git_dirs():
         if (d / "manifest.json").is_file():
             continue
         url = git(d, "remote", "get-url", "origin").stdout.strip()
-        if url and not OWN.search(url):
+        if url and not (own and own.search(url)):
             out.append(d)
     return out
 

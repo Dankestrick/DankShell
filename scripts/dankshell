@@ -41,6 +41,7 @@ restart_shell() { omarchy restart shell >/dev/null 2>&1 || true; }
 
 case "${1:-status}" in
   install)
+    mkdir -p "$plugin_dir"
     rsync -a --delete --exclude .git "$repo_dir/" "$plugin_dir/"
     echo "Copied to $plugin_dir. Run: omarchy restart shell"
     ;;

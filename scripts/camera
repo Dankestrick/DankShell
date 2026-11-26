@@ -1,19 +1,32 @@
 #!/usr/bin/env bash
 # camera — small helper for the Camera page (services/Camera.qml).
 #   camera find               -> the webcam's /dev/videoN (found by name)
+#   camera name               -> the webcam's name
 #   camera ctrls DEV          -> v4l2-ctl --list-ctrls for DEV
 #   camera set DEV k=v ...    -> set each control in order, one at a time,
 #                                so one refused value doesn't stop the rest
-# The name comes from $DANKSHELL_CAMERA (default: Anker PowerConf C200).
+# Set $DANKSHELL_CAMERA to pick a camera by name. Without it, the first real
+# USB/built-in camera is used (virtual v4l2loopback cameras are skipped).
 set -u
-NAME="${DANKSHELL_CAMERA:-Anker PowerConf C200}"
+NAME="${DANKSHELL_CAMERA:-}"
+
+# Prints "name<TAB>/dev/videoN" for the camera in use.
+pick() {
+  v4l2-ctl --list-devices 2>/dev/null | awk -v n="$NAME" '
+    /^[^ \t]/ {
+      head = $0; sub(/ \(.*$/, "", head); sub(/:.*$/, "", head)
+      f = (n != "") ? (index($0, n) == 1) : ($0 !~ /v4l2loopback|platform:/)
+      next
+    }
+    f && /\/dev\/video/ { d = $0; gsub(/[ \t]/, "", d); print head "\t" d; exit }'
+}
 
 case "${1:-}" in
   find)
-    v4l2-ctl --list-devices 2>/dev/null | awk -v n="$NAME" '
-      index($0, n) == 1 { f = 1; next }
-      f && /\/dev\/video/ { gsub(/[ \t]/, ""); print; exit }
-      f && !/^[ \t]/ { exit }'
+    pick | cut -f2
+    ;;
+  name)
+    pick | cut -f1
     ;;
   ctrls)
     [ -n "${2:-}" ] && v4l2-ctl -d "$2" --list-ctrls 2>/dev/null
@@ -27,7 +40,7 @@ case "${1:-}" in
     exit $rc
     ;;
   *)
-    echo "usage: camera find | ctrls DEV | set DEV name=value..." >&2
+    echo "usage: camera find | name | ctrls DEV | set DEV name=value..." >&2
     exit 2
     ;;
 esac

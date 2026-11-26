@@ -3,7 +3,7 @@ import Quickshell
 import "../../"
 
 // GetPlugins — the Plugins window's "Updates" page: plugins with an update
-// waiting, and git installs (God's Eye View, ComfyUI, the CloneWars clones)
+// waiting, and git installs (checkouts listed in ~/.config/dankshell/git-installs.json)
 // that are behind their repo. Tick one, some or all, then Update selected.
 // Everything runs through services/PluginManager.qml.
 Column {

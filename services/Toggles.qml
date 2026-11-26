@@ -13,13 +13,23 @@ Singleton {
 
   property bool watching: false       // Island sets this while a dashboard is open
 
-  // ── VPN (ProtonVPN) ───────────────────────────
+  // ── VPN ───────────────────────────────────────
+  // Uses the ProtonVPN app's CLI when it's installed; otherwise any VPN or
+  // WireGuard connection saved in NetworkManager (up = the first saved one).
+  // The tile hides when neither exists.
   property bool vpn: false
   property string vpnName: ""
   property bool vpnBusy: false
+  property bool vpnProton: false
+  property string vpnSaved: ""
+  readonly property bool vpnAvailable: vpnProton || vpnSaved !== "" || vpn
   function toggleVpn() {
     vpnBusy = true
-    run(vpn ? ["protonvpn", "disconnect"] : ["protonvpn", "connect"], () => { vpnBusy = false; refresh() })
+    const done = () => { vpnBusy = false; refresh() }
+    if (vpnProton) run(vpn ? ["protonvpn", "disconnect"] : ["protonvpn", "connect"], done)
+    else if (vpn) run(["nmcli", "connection", "down", "id", vpnName], done)
+    else if (vpnSaved !== "") run(["nmcli", "connection", "up", "id", vpnSaved], done)
+    else vpnBusy = false
   }
 
   // ── Bluetooth ─────────────────────────────────
@@ -67,7 +77,9 @@ Singleton {
   Process {
     id: statusProc
     command: ["bash", "-c",
-      "echo vpn=$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | grep -i '^proton' | grep -i wireguard | head -1 | cut -d: -f1);" +
+      "echo vpn=$(nmcli -t -f NAME,TYPE connection show --active 2>/dev/null | grep -E ':(vpn|wireguard)$' | head -1 | sed 's/:[^:]*$//');" +
+      "echo vpnsaved=$(nmcli -t -f NAME,TYPE connection show 2>/dev/null | grep -E ':(vpn|wireguard)$' | head -1 | sed 's/:[^:]*$//');" +
+      "echo proton=$(command -v protonvpn >/dev/null && echo yes);" +
       "echo night=$(omarchy toggle nightlight --status 2>/dev/null | jq -r .enabled);" +
       "echo dnd=$(omarchy-shell notifications isDnd 2>/dev/null);" +
       "echo count=$(omarchy-shell notifications count 2>/dev/null);" +
@@ -79,6 +91,8 @@ Singleton {
           if (i < 0) continue
           const key = line.slice(0, i), val = line.slice(i + 1).trim()
           if (key === "vpn") { toggles.vpnName = val; toggles.vpn = val !== "" }
+          else if (key === "vpnsaved") toggles.vpnSaved = val
+          else if (key === "proton") toggles.vpnProton = val === "yes"
           else if (key === "night") toggles.nightLight = val === "true"
           else if (key === "dnd") toggles.dnd = val === "true" || val === "on" || val === "1"
           else if (key === "game") { if (!toggles.gameBusy) toggles.gameMode = val === "on" }

@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 
 // PluginManager — update and remove plugins from the Plugins window (what
-// Omaplug did), and update git installs (God's Eye View, ComfyUI, CloneWars). Everything runs through Omarchy's own `omarchy plugin`
+// Omaplug did), and update git installs (see scripts/plugin-manage). Everything runs through Omarchy's own `omarchy plugin`
 // commands via scripts/plugin-manage. A job runs detached and writes its
 // progress to ~/.cache/dankshell/plugin-job.json, so it keeps going even if the
 // shell reloads plugins underneath it; this service watches that file.
