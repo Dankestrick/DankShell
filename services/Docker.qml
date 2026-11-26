@@ -40,11 +40,13 @@ Singleton {
   Component.onCompleted: refresh()
 
   readonly property string helper: Qt.resolvedUrl("../scripts/docker-open").toString().replace("file://", "")
-  // Second workspace of the monitor the mouse is on.
+  // Second workspace of the mouse's monitor from Settings.v.monitorSpaces;
+  // a monitor not listed there opens it on the workspace it's showing.
   function targetWorkspace() {
     const m = Hyprland.focusedMonitor
-    const spaces = m ? DockerConfig.SPACES[m.name] : null
-    return spaces && spaces.length > 1 ? spaces[1] : 4
+    const spaces = m ? (Settings.v.monitorSpaces || {})[m.name] : null
+    if (Array.isArray(spaces) && spaces.length > 1) return spaces[1]
+    return m && m.activeWorkspace ? m.activeWorkspace.id : 1
   }
   function open(c) {
     if (!c.url) return

@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import "../"
-import "../config/Docker.js" as Spaces
 
 // MonitorPills — one pill per monitor, laid out like the desk (left to right,
 // main row first, the one above after). The pill for the monitor the mouse is
@@ -11,7 +10,7 @@ import "../config/Docker.js" as Spaces
 // the picture); drag a pill onto another pill to move that window there, or
 // drag a dot to carry a window off that workspace without going there.
 // While you drag over a pill it spreads out into that monitor's workspaces
-// (1 · 4 · 7 on the main) so you can drop the window on the one you want.
+// (Settings.v.monitorSpaces, or the ones it has open) so you can drop the window on the one you want.
 Item {
   id: root
 
@@ -150,7 +149,10 @@ Item {
         readonly property string monitorName: modelData.name
         readonly property bool here: Hyprland.focusedMonitor !== null && Hyprland.focusedMonitor.name === monitorName
         readonly property bool target: root.dragFrom !== "" && root.dropOn === monitorName
-        readonly property var plan: Spaces.SPACES[monitorName] || []
+        readonly property var plan: {
+          const set = (Settings.v.monitorSpaces || {})[monitorName]
+          return Array.isArray(set) && set.length ? set : pill.spaces.map(w => w.id)
+        }
         readonly property alias slotRow: slots
         readonly property bool source: root.dragFrom === monitorName
         readonly property var spaces: Hyprland.workspaces.values

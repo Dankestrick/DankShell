@@ -21,11 +21,3 @@ var ICONS = {
   "zap": "bug_report",
   "juice-shop": "local_drink"
 }
-
-// Each monitor's workspaces, in order (from hyprmoncfg's plan). The second one
-// is where a container's window opens: 4 on the main, 5 on the left, 6 on the TV.
-var SPACES = {
-  "DP-1": [1, 4, 7],
-  "DP-2": [2, 5, 8],
-  "HDMI-A-1": [3, 6, 9]
-}

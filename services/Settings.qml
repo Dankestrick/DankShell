@@ -30,6 +30,10 @@ Singleton {
     // Game page
     gameModeOnPlay: true,
     gameDefaults: ({}),
+    // Monitor pills: workspace slots per monitor while dragging a window over
+    // its pill, e.g. { "DP-1": [1, 4, 7] }. A monitor not listed uses the
+    // workspaces it has open.
+    monitorSpaces: ({}),
     glance: [], glanceHidden: [],
     lyricsOpen: true,   // Pandora page: lyrics card open or folded   // Glance row order ("tray:<id>" or a widget id) and hidden tray apps   // appid -> "mod" | "vanilla": what a game card's Play does
     // Windows (Hyprland overrides written to ~/.config/hypr/dankshell.lua)
@@ -102,6 +106,7 @@ Singleton {
       property var pinned: ["pandora", "kraken", "gravastar", "iphone", "grokbots"]
       property bool gameModeOnPlay: true
       property var gameDefaults: ({})
+      property var monitorSpaces: ({})
       property var glance: []
       property var glanceHidden: []
       property bool lyricsOpen: true
